@@ -3,13 +3,17 @@
     "version": "1.0.0",
     "main": "index.js",
     "scripts": {
-        "dev": "node index.js",
-        "seed": "node seed.js",
-        "migrate": "drizzle-kit push"
+        "dev": "NODE_OPTIONS='--loader ts-node/esm' node index.ts",
+        "seed": "NODE_OPTIONS='--loader ts-node/esm' node seed.ts",
+        "generate": "drizzle-kit generate:pg",
+        "migrate": "drizzle-kit push:pg",
+        "studio": "drizzle-kit studio",
+        "build": "tsc",
+        "start": "node dist/index.js"
     },
     "dependencies": {
         "@fastify/cors": "^8.3.0",
-        "@fastify/formbody": "^8.0.2",
+        "@fastify/formbody": "^7.0.0",
         "bcrypt": "^5.1.0",
         "dotenv": "^16.3.1",
         "drizzle-kit": "^0.20.10",
@@ -17,9 +21,19 @@
         "fastify": "^4.25.0",
         "jsonwebtoken": "^9.0.2",
         "jwks-rsa": "^3.0.1",
-        "jwt-decode": "^3.1.2",
+        "jwt-decode": "^2.2.0",
         "node-fetch": "^2.6.12",
         "pg": "^8.11.1"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^5.0.2",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/jwt-decode": "^2.2.1",
+        "@types/node": "^20.11.19",
+        "@types/node-fetch": "^2.6.12",
+        "@types/pg": "^8.11.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
     },
     "type": "module"
 }
