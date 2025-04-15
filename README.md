@@ -35,7 +35,7 @@ JWT_SECRET=your_jwt_secret
 
 ### 3. Start with Docker
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 ### 4. Seed Demo User

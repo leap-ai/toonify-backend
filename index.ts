@@ -63,7 +63,7 @@ fastify.post<{ Body: { email: string; password: string } }>('/auth/signup', asyn
   const hash = await bcrypt.hash(password, 10);
   const user = await createUser(email, hash);
   const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-  return { token };
+  return { token, user: { id: user.id, email: user.email } };
 });
 
 fastify.post<{ Body: { email: string; password: string } }>('/auth/login', async (req, reply) => {
@@ -73,7 +73,7 @@ fastify.post<{ Body: { email: string; password: string } }>('/auth/login', async
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
   const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-  return { token };
+  return { token, user: { id: user.id, email: user.email } };
 });
 
 fastify.post<{ Body: { id_token: string } }>('/auth/google', async (req, reply) => {
@@ -129,7 +129,7 @@ fastify.post('/cartoonify', async (req, reply) => {
   }
 });
 
-fastify.listen({ port: 3000 }, err => {
+fastify.listen({ port: 3000, host: '0.0.0.0' }, err => {
   if (err) throw err;
-  console.log('Backend running on http://localhost:3000');
+  console.log('Backend running on http://0.0.0.0:3000');
 }); 
