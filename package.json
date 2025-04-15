@@ -1,0 +1,25 @@
+{
+    "name": "cartoonify-backend",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "dev": "node index.js",
+        "seed": "node seed.js",
+        "migrate": "drizzle-kit push"
+    },
+    "dependencies": {
+        "@fastify/cors": "^8.3.0",
+        "@fastify/formbody": "^8.0.2",
+        "bcrypt": "^5.1.0",
+        "dotenv": "^16.3.1",
+        "drizzle-kit": "^0.20.10",
+        "drizzle-orm": "^0.29.0",
+        "fastify": "^4.25.0",
+        "jsonwebtoken": "^9.0.2",
+        "jwks-rsa": "^3.0.1",
+        "jwt-decode": "^3.1.2",
+        "node-fetch": "^2.6.12",
+        "pg": "^8.11.1"
+    },
+    "type": "module"
+}
