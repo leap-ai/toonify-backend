@@ -21,15 +21,9 @@ export const config = {
   fal: {
     key: process.env.FAL_KEY!,
   },
-  aws: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    region: process.env.AWS_REGION!,
-    bucketName: process.env.AWS_BUCKET_NAME!,
-  },
-  revenuecat: {
-    apiKey: process.env.REVENUECAT_API_KEY!,
-    webhookSecret: process.env.REVENUECAT_WEBHOOK_SECRET!,
+  betterAuth: {
+    secret: process.env.BETTER_AUTH_SECRET!,
+    baseUrl: process.env.BETTER_AUTH_BASE_URL || 'http://localhost:3000',
   },
 } as const;
 
@@ -43,12 +37,7 @@ const requiredEnvVars = [
   'APPLE_KEY_ID',
   'APPLE_PRIVATE_KEY',
   'FAL_KEY',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_REGION',
-  'AWS_BUCKET_NAME',
-  'REVENUECAT_API_KEY',
-  'REVENUECAT_WEBHOOK_SECRET',
+  'BETTER_AUTH_SECRET',
 ] as const;
 
 for (const envVar of requiredEnvVars) {
