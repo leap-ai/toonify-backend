@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
+    "allowSyntheticDefaultImports": true,
     "moduleResolution": "Node",
     "esModuleInterop": true,
     "strict": true,

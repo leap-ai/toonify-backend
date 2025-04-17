@@ -3,8 +3,8 @@
     "version": "1.0.0",
     "main": "index.js",
     "scripts": {
-        "dev": "NODE_OPTIONS='--loader ts-node/esm' node index.ts",
-        "seed": "NODE_OPTIONS='--loader ts-node/esm' node seed.ts",
+        "dev": "tsx index.ts",
+        "seed": "tsx seed.ts",
         "generate": "drizzle-kit generate:pg",
         "migrate": "drizzle-kit push:pg",
         "studio": "drizzle-kit studio",
@@ -30,7 +30,8 @@
         "jwks-rsa": "^3.0.1",
         "jwt-decode": "^2.2.0",
         "node-fetch": "^2.6.12",
-        "pg": "^8.11.1"
+        "pg": "^8.11.1",
+        "tsx": "^4.7.1"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.2",
@@ -38,7 +39,7 @@
         "@types/jwt-decode": "^2.2.1",
         "@types/node": "^20.11.19",
         "@types/node-fetch": "^2.6.12",
-        "@types/pg": "^8.11.0",
+        "@types/pg": "^8.11.13",
         "ts-node": "^10.9.2",
         "typescript": "^5.3.3"
     },
