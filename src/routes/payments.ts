@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { payments } from '../../drizzle/schema';
-import { authMiddleware } from '../middleware/auth';
+import { payments } from '../db/schema';
 
 const router = Router();
 

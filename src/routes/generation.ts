@@ -1,103 +1,88 @@
 import { Router } from 'express';
+import { generateCartoonImage, uploadImageToFal } from '../services/imageGeneration';
 import { db } from '../db';
-import { users, cartoonGenerations, creditsTransactions } from '../../drizzle/schema';
-import { eq } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth';
-import * as fal from '@fal-ai/serverless-client';
+import { generations, users } from '../db/schema';
+import { eq, desc } from 'drizzle-orm';
+import { authenticateToken } from '../middleware/auth';
+import multer from 'multer';
 
 const router = Router();
-fal.config({
-  credentials: process.env.FAL_KEY,
-});
+const upload = multer();
 
-const CREDITS_PER_GENERATION = 1;
-
-// Generate cartoon image
-router.post('/create', authMiddleware, async (req, res) => {
+router.post('/generate', authenticateToken, upload.single('image'), async (req, res): Promise<any> => {
   try {
-    const { imageUrl } = req.body;
+    console.log(">>>>> I am here")
+    const file = req.file;
+    const userId = req.user?.id;
 
-    // Check if user has enough credits
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, req.user!.id),
-      columns: {
-        creditsBalance: true,
-      },
-    });
-
-    if (!user || user.creditsBalance < CREDITS_PER_GENERATION) {
-      return res.status(400).json({ error: 'Insufficient credits' });
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    // Start a transaction
-    const result = await db.transaction(async (tx) => {
-      // Deduct credits
-      const [updatedUser] = await tx
-        .update(users)
-        .set({
-          creditsBalance: users.creditsBalance - CREDITS_PER_GENERATION,
-        })
-        .where(eq(users.id, req.user!.id))
-        .returning();
+    if (!file) {
+      return res.status(400).json({ error: 'Image file is required' });
+    }
 
-      // Record credit usage
-      await tx.insert(creditsTransactions).values({
-        userId: req.user!.id,
-        amount: -CREDITS_PER_GENERATION,
-        type: 'usage',
-      });
+    // Check user credits
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-      // Create generation record
-      const [generation] = await tx
-        .insert(cartoonGenerations)
-        .values({
-          userId: req.user!.id,
-          originalImageUrl: imageUrl,
-          generatedImageUrl: '', // Will be updated after generation
-          status: 'pending',
-          creditsUsed: CREDITS_PER_GENERATION,
-        })
-        .returning();
+    if (!user || user.creditsBalance <= 0) {
+      return res.status(403).json({ error: 'Insufficient credits' });
+    }
 
-      return { user: updatedUser, generation };
-    });
+    // Convert buffer to base64
+    const base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
 
-    // Generate cartoon image using Fal.ai
-    const response = await fal.subscribe('fal-ai/cartoonify', {
-      input: {
-        image_url: imageUrl,
-      },
-    });
+    // Upload image to fal.ai storage
+    const falImageUrl = await uploadImageToFal(base64Image);
+    console.log('Image uploaded to fal.ai:', falImageUrl);
 
-    // Update generation record with result
-    await db
-      .update(cartoonGenerations)
-      .set({
-        generatedImageUrl: response.image_url,
-        status: 'completed',
-      })
-      .where(eq(cartoonGenerations.id, result.generation.id));
+    // Generate cartoon image
+    const cartoonImageUrl = await generateCartoonImage(falImageUrl);
+    console.log('Cartoon image generated:', cartoonImageUrl);
 
-    res.json({
-      ...result,
-      generatedImageUrl: response.image_url,
-    });
+    // Save generation to database
+    const [generation] = await db.insert(generations).values({
+      userId,
+      originalImageUrl: falImageUrl,
+      cartoonImageUrl: cartoonImageUrl,
+      createdAt: new Date(),
+      status: 'completed',
+      creditsUsed: 1
+    }).returning();
+
+    // Deduct credits
+    await db.update(users)
+      .set({ creditsBalance: user.creditsBalance - 1 })
+      .where(eq(users.id, userId));
+
+    res.json(generation);
   } catch (error) {
-    res.status(500).json({ error: 'Error generating cartoon image' });
+    console.error('Generation error:', error);
+    res.status(500).json({ error: 'Failed to generate image' });
   }
 });
 
-// Get generation history
-router.get('/history', authMiddleware, async (req, res) => {
+router.get('/history', authenticateToken, async (req, res): Promise<any> => {
   try {
-    const generations = await db.query.cartoonGenerations.findMany({
-      where: eq(cartoonGenerations.userId, req.user!.id),
-      orderBy: (generations, { desc }) => [desc(generations.createdAt)],
-    });
+    const userId = req.user?.id;
 
-    res.json({ generations });
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const userGenerations = await db.select()
+      .from(generations)
+      .where(eq(generations.userId, userId))
+      .orderBy(desc(generations.createdAt));
+
+    res.json(userGenerations);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching generation history' });
+    console.error('Error fetching generation history:', error);
+    res.status(500).json({ error: 'Failed to fetch generation history' });
   }
 });
 

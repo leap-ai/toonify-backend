@@ -1,9 +1,8 @@
 import { User } from '../db/schema';
+import 'express';
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: User;
-    }
+declare module 'express' {
+  interface Request {
+    user?: User;
   }
-} 
+}
