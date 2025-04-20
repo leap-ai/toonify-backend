@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const requiredEnvVars = [
   'APPLE_TEAM_ID',
   'APPLE_KEY_ID',
   'APPLE_PRIVATE_KEY',
+  'APPLE_APP_BUNDLE_IDENTIFIER',
   'FAL_API_KEY',
   'BETTER_AUTH_SECRET',
   'BETTER_AUTH_BASE_URL',
@@ -38,21 +40,43 @@ export const config = {
     teamId: process.env.APPLE_TEAM_ID!,
     keyId: process.env.APPLE_KEY_ID!,
     privateKey: process.env.APPLE_PRIVATE_KEY!,
-    clientSecret: process.env.APPLE_CLIENT_SECRET!,
+    appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER!,
   },
   fal: {
     key: process.env.FAL_API_KEY!,
   },
   betterAuth: {
     secret: process.env.BETTER_AUTH_SECRET!,
-    baseUrl: process.env.BETTER_AUTH_BASE_URL || 'https://xxxx-xx-xx-xxx-xx.ngrok.io',
+    baseUrl: process.env.BETTER_AUTH_BASE_URL,
   },
+  getAppleClientSecret: () => {
+    const teamId = config.apple.teamId;
+    const clientId = config.apple.clientId;
+    const keyId = config.apple.keyId;
+    const privateKey = config.apple.privateKey.replace(/\\n/g, '\n');
+
+    const payload = {
+      iss: "https://appleid.apple.com",
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 86400 * 180,
+      aud: "host.exp.Exponent", //teamId,
+      sub: clientId,
+    };
+
+    const header = {
+      alg: 'ES256',
+      kid: keyId,
+    };
+
+    try {
+      const clientSecret = jwt.sign(payload, privateKey, {
+        algorithm: 'ES256',
+        header: header,
+      });
+      return clientSecret;
+    } catch (error) {
+      console.error('Error generating Apple client secret:', error);
+      throw new Error('Failed to generate Apple client secret');
+    }
+  }
 } as const;
-
-// export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-// export const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/cartoonify';
-// export const FAL_API_KEY = process.env.FAL_API_KEY || '';
-
-// if (!FAL_API_KEY) {
-//   console.warn('Warning: FAL_API_KEY is not set in environment variables');
-// } 

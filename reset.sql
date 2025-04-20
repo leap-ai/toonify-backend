@@ -1,8 +1,11 @@
--- Drop existing extension if it exists
-DROP EXTENSION IF EXISTS "uuid-ossp";
+-- Drop database if it exists (cannot drop if there are active connections)
+DROP DATABASE IF EXISTS toonify;
 
--- Create the extension in the public schema
-CREATE EXTENSION "uuid-ossp" SCHEMA public;
+-- Create database
+CREATE DATABASE toonify;
+
+-- Connect to the toonify database
+\c toonify;
 
 -- Drop tables in correct order to handle foreign key constraints
 DROP TABLE IF EXISTS verification CASCADE;
@@ -13,9 +16,9 @@ DROP TABLE IF EXISTS generations CASCADE;
 DROP TABLE IF EXISTS credits_transactions CASCADE;
 DROP TABLE IF EXISTS "user" CASCADE;
 
--- Create tables with proper UUID handling
+-- Create tables with proper ID handling
 CREATE TABLE "user" (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     email_verified BOOLEAN DEFAULT FALSE,
@@ -26,8 +29,8 @@ CREATE TABLE "user" (
 );
 
 CREATE TABLE session (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE,
     expires_at TIMESTAMP NOT NULL,
     ip_address TEXT,
@@ -37,8 +40,8 @@ CREATE TABLE session (
 );
 
 CREATE TABLE account (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     account_id TEXT NOT NULL,
     provider_id TEXT NOT NULL,
     access_token TEXT,
@@ -53,18 +56,17 @@ CREATE TABLE account (
 );
 
 CREATE TABLE verification (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-    type TEXT NOT NULL,
-    token TEXT NOT NULL,
-    expires TIMESTAMP NOT NULL,
+    id TEXT PRIMARY KEY,
+    identifier TEXT NOT NULL,
+    value TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE credits_transactions (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     amount INTEGER NOT NULL,
     type TEXT NOT NULL,
     payment_id TEXT,
@@ -73,8 +75,8 @@ CREATE TABLE credits_transactions (
 );
 
 CREATE TABLE generations (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     original_image_url TEXT NOT NULL,
     cartoon_image_url TEXT NOT NULL,
     status TEXT NOT NULL,
@@ -84,8 +86,8 @@ CREATE TABLE generations (
 );
 
 CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     amount INTEGER NOT NULL,
     currency TEXT DEFAULT 'USD',
     status TEXT NOT NULL,

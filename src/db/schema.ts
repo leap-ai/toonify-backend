@@ -1,9 +1,9 @@
-import { pgTable, text, timestamp, integer, boolean, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 // Better Auth Core Schema
 export const users = pgTable('user', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
+  id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
@@ -14,8 +14,8 @@ export const users = pgTable('user', {
 });
 
 export const sessions = pgTable('session', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at').notNull(),
   ipAddress: text('ip_address'),
@@ -25,8 +25,8 @@ export const sessions = pgTable('session', {
 });
 
 export const accounts = pgTable('account', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   accountId: text('account_id').notNull(),
   providerId: text('provider_id').notNull(),
   accessToken: text('access_token'),
@@ -41,19 +41,18 @@ export const accounts = pgTable('account', {
 });
 
 export const verification = pgTable('verification', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  token: text('token').notNull(),
-  expires: timestamp('expires').notNull(),
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 // Application Schema
 export const creditsTransactions = pgTable('credits_transactions', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   amount: integer('amount').notNull(),
   type: text('type').notNull(),
   paymentId: text('payment_id'),
@@ -62,8 +61,8 @@ export const creditsTransactions = pgTable('credits_transactions', {
 });
 
 export const generations = pgTable('generations', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   originalImageUrl: text('original_image_url').notNull(),
   cartoonImageUrl: text('cartoon_image_url').notNull(),
   status: text('status').notNull(),
@@ -73,10 +72,10 @@ export const generations = pgTable('generations', {
 });
 
 export const payments = pgTable('payments', {
-  id: uuid('id').primaryKey().default(sql`public.uuid_generate_v4()`),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   amount: integer('amount').notNull(),
-  currency: text('currency').notNull().default('USD'),
+  currency: text('currency').default('USD'),
   status: text('status').notNull(),
   revenuecatTransactionId: text('revenuecat_transaction_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),

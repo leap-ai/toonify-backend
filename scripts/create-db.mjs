@@ -6,7 +6,7 @@ dotenv.config();
 async function createDatabase() {
   // Connect to the default postgres database
   const client = new Client({
-    connectionString: 'postgres://postgres:postgres@localhost:5432/postgres',
+    connectionString: process.env.DATABASE_URL,
   });
 
   try {
@@ -27,6 +27,7 @@ async function createDatabase() {
     }
   } catch (err) {
     console.error('Error creating database:', err);
+    process.exit(1); // Exit with error code
   } finally {
     await client.end();
   }

@@ -21,10 +21,10 @@ const auth = betterAuth({
   },
   socialProviders: {
     apple: { 
-        clientId: config.apple.clientId as string,
-        clientSecret: config.apple.clientSecret as string,
+        clientId: config.apple.appBundleIdentifier as string,
+        clientSecret: config.getAppleClientSecret() as string,
         // Optional
-        appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER as string, 
+        appBundleIdentifier: config.apple.appBundleIdentifier as string,
     },
   },
   user: {

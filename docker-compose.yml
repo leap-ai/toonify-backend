@@ -10,23 +10,12 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./reset.sql:/reset.sql
+      - ./reset.sql:/docker-entrypoint-initdb.d/reset.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  db-init:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    command: node scripts/create-db.js
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
-    depends_on:
-      db:
-        condition: service_healthy
 
   api:
     build: .
@@ -37,9 +26,9 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/toonify
       JWT_SECRET: changeme
     depends_on:
-      db-init:
-        condition: service_completed_successfully
-    command: sh -c "npm run migrate && npm run dev"
+      db:
+        condition: service_healthy
+    command: sh -c "npm run dev"
 
 volumes:
   postgres_data:
