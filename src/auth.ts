@@ -25,12 +25,12 @@ const auth = betterAuth({
         clientSecret: config.getAppleClientSecret() as string,
         // Optional
         appBundleIdentifier: config.apple.appBundleIdentifier as string,
-        redirectUri: `${config.betterAuth.baseUrl}/callback/apple`
+        redirectUri: `/api/auth/callback/apple`
     },
     google: {
       clientId: config.google.clientId as string,
       clientSecret: config.google.clientSecret as string,
-      redirectUri: `${config.betterAuth.baseUrl}/callback/google`
+      redirectUri: `/api/auth/callback/google`
     },
   },
   user: {
