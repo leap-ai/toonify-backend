@@ -8,6 +8,7 @@ const requiredEnvVars = [
   'DATABASE_URL',
   'JWT_SECRET',
   'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
   'APPLE_CLIENT_ID',
   'APPLE_TEAM_ID',
   'APPLE_KEY_ID',
@@ -15,8 +16,6 @@ const requiredEnvVars = [
   'APPLE_APP_BUNDLE_IDENTIFIER',
   'FAL_API_KEY',
   'BETTER_AUTH_SECRET',
-  'BETTER_AUTH_BASE_URL',
-  'APPLE_CLIENT_SECRET',
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -48,7 +47,6 @@ export const config = {
   },
   betterAuth: {
     secret: process.env.BETTER_AUTH_SECRET!,
-    baseUrl: process.env.BETTER_AUTH_BASE_URL,
   },
   getAppleClientSecret: () => {
     const teamId = config.apple.teamId;
@@ -57,10 +55,10 @@ export const config = {
     const privateKey = config.apple.privateKey.replace(/\\n/g, '\n');
 
     const payload = {
-      iss: "https://appleid.apple.com",
+      iss: teamId,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 86400 * 180,
-      aud: "host.exp.Exponent", //teamId,
+      aud: "https://appleid.apple.com",
       sub: clientId,
     };
 
