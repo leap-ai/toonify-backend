@@ -1,12 +1,12 @@
 import { db } from '../src/db';
-import { users, creditsTransactions } from '../src/db/schema';
+import { user, creditsTransactions } from '../src/db/schema';
 import { eq } from 'drizzle-orm';
 
 async function addCredits() {
   try {
     // Find the test user
-    const testUser = await db.query.users.findFirst({
-      where: eq(users.email, 'test@shubh.com'),
+    const testUser = await db.query.user.findFirst({
+      where: eq(user.email, 'test@test.com'),
     });
 
     if (!testUser) {
@@ -26,11 +26,11 @@ async function addCredits() {
     });
 
     // Update user's credit balance
-    await db.update(users)
+    await db.update(user)
       .set({ creditsBalance: testUser.creditsBalance + 100 })
-      .where(eq(users.id, testUser.id));
+      .where(eq(user.id, testUser.id));
 
-    console.log('Successfully added 100 credits to test@shubh.com');
+    console.log('Successfully added 100 credits to test@test.com');
   } catch (error) {
     console.error('Error adding credits:', error);
   }

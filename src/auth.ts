@@ -5,14 +5,14 @@ import { config } from "./config";
 import * as schema from "./db/schema";
  
 const auth = betterAuth({
-  trustedOrigins: ["exp://192.168.1.8:8081/--/(tabs)"],
+  trustedOrigins: ["com.leapai.toonify://", "host.exp.Exponent"],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
       ...schema,
-      user: schema.users,
-      account: schema.accounts,
-      session: schema.sessions,
+      user: schema.user,
+      account: schema.account,
+      session: schema.session,
       verification: schema.verification,
     }
   }),

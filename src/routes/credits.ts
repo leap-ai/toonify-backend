@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db } from '../db';
-import { users, creditsTransactions } from '../db/schema';
+import { user, creditsTransactions } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
@@ -19,14 +19,14 @@ const getBalance = async (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
+    const userVal = await db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
       columns: {
         creditsBalance: true,
       },
     });
 
-    res.json({ creditsBalance: user?.creditsBalance || 0 });
+    res.json({ creditsBalance: userVal?.creditsBalance || 0 });
   } catch (error) {
     next(error);
   }
@@ -83,9 +83,9 @@ const purchaseCredits = async (req: Request, res: Response, next: NextFunction) 
     }).returning();
 
     // Update user's credit balance
-    await db.update(users)
-      .set({ creditsBalance: sql`${users.creditsBalance} + ${amount}` })
-      .where(eq(users.id, session.user.id));
+    await db.update(user)
+      .set({ creditsBalance: sql`${user.creditsBalance} + ${amount}` })
+      .where(eq(user.id, session.user.id));
 
     res.json(transaction);
   } catch (error) {
@@ -122,9 +122,9 @@ const addCredits = async (req: Request, res: Response, next: NextFunction) => {
     }).returning();
 
     // Update user's credit balance
-    await db.update(users)
-      .set({ creditsBalance: sql`${users.creditsBalance} + ${amount}` })
-      .where(eq(users.id, userId));
+    await db.update(user)
+      .set({ creditsBalance: sql`${user.creditsBalance} + ${amount}` })
+      .where(eq(user.id, userId));
 
     res.json(transaction);
   } catch (error) {

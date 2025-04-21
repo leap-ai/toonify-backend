@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { generateCartoonImage, uploadImageToFal } from '../services/imageGeneration';
 import { db } from '../db';
-import { generations, users } from '../db/schema';
+import { generations, user } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import multer from 'multer';
 import { fromNodeHeaders } from 'better-auth/node';
@@ -10,7 +10,7 @@ import auth from '../auth';
 const router = Router();
 const upload = multer({
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB limit
   },
   fileFilter: (req, file, cb) => {
     // Accept only image files
@@ -37,12 +37,12 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     }
 
     // Check user credits
-    const [user] = await db.select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
+    const [userVal] = await db.select()
+      .from(user)
+      .where(eq(user.id, session.user.id))
       .limit(1);
 
-    if (!user || user.creditsBalance <= 0) {
+    if (!userVal || userVal.creditsBalance <= 0) {
       return res.status(403).json({ error: 'Insufficient credits' });
     }
 
@@ -75,9 +75,9 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     }).returning();
 
     // Deduct credits
-    await db.update(users)
-      .set({ creditsBalance: user.creditsBalance - 1 })
-      .where(eq(users.id, session.user.id));
+    await db.update(user)
+      .set({ creditsBalance: userVal.creditsBalance - 1 })
+      .where(eq(user.id, session.user.id));
 
     res.json(generation);
   } catch (error) {

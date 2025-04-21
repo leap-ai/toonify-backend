@@ -55,10 +55,10 @@ export const config = {
     const privateKey = config.apple.privateKey.replace(/\\n/g, '\n');
 
     const payload = {
-      iss: teamId,
+      iss: "https://appleid.apple.com",
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 86400 * 180,
-      aud: "https://appleid.apple.com",
+      aud: clientId,
       sub: clientId,
     };
 

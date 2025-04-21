@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { payments, users } from '../db/schema';
+import { payments } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';

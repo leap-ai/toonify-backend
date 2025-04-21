@@ -2,7 +2,7 @@ import { pgTable, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm';
 
 // Better Auth Core Schema
-export const users = pgTable('user', {
+export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
@@ -13,9 +13,9 @@ export const users = pgTable('user', {
   creditsBalance: integer('credits_balance').notNull().default(0),
 });
 
-export const sessions = pgTable('session', {
+export const session = pgTable('session', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at').notNull(),
   ipAddress: text('ip_address'),
@@ -24,9 +24,9 @@ export const sessions = pgTable('session', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const accounts = pgTable('account', {
+export const account = pgTable('account', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   accountId: text('account_id').notNull(),
   providerId: text('provider_id').notNull(),
   accessToken: text('access_token'),
@@ -52,7 +52,7 @@ export const verification = pgTable('verification', {
 // Application Schema
 export const creditsTransactions = pgTable('credits_transactions', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   amount: integer('amount').notNull(),
   type: text('type').notNull(),
   paymentId: text('payment_id'),
@@ -62,7 +62,7 @@ export const creditsTransactions = pgTable('credits_transactions', {
 
 export const generations = pgTable('generations', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   originalImageUrl: text('original_image_url').notNull(),
   cartoonImageUrl: text('cartoon_image_url').notNull(),
   status: text('status').notNull(),
@@ -73,7 +73,7 @@ export const generations = pgTable('generations', {
 
 export const payments = pgTable('payments', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   amount: integer('amount').notNull(),
   currency: text('currency').default('USD'),
   status: text('status').notNull(),
