@@ -1,20 +1,15 @@
--- Drop database if it exists (cannot drop if there are active connections)
-DROP DATABASE IF EXISTS toonify;
-
--- Create database
-CREATE DATABASE toonify;
-
 -- Connect to the toonify database
 \c toonify;
 
--- Drop tables in correct order to handle foreign key constraints
-DROP TABLE IF EXISTS verification CASCADE;
-DROP TABLE IF EXISTS account CASCADE;
-DROP TABLE IF EXISTS session CASCADE;
+-- Drop specific tables in correct order to handle foreign key constraints
 DROP TABLE IF EXISTS payments CASCADE;
 DROP TABLE IF EXISTS generations CASCADE;
 DROP TABLE IF EXISTS credits_transactions CASCADE;
+DROP TABLE IF EXISTS verification CASCADE;
+DROP TABLE IF EXISTS account CASCADE;
+DROP TABLE IF EXISTS session CASCADE;
 DROP TABLE IF EXISTS "user" CASCADE;
+DROP TABLE IF EXISTS cartoon_generations CASCADE;
 
 -- Create tables with proper ID handling
 CREATE TABLE "user" (
