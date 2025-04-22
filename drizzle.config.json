@@ -1,0 +1,8 @@
+{
+  "out": "./drizzle",
+  "schema": "./src/db/schema.ts",
+  "driver": "pg",
+  "dbCredentials": {
+    "connectionString": "postgres://postgres:postgres@localhost:5432/toonify"
+  }
+} 

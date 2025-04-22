@@ -3,7 +3,6 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import pg from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs';
 
 // Load environment variables
@@ -25,7 +24,7 @@ async function main() {
   
   try {
     // Define migrations folder path
-    const migrationsFolder = path.join(__dirname, '../drizzle/migrations');
+    const migrationsFolder = path.resolve(__dirname, '../../drizzle/migrations');
     console.log(`Migrations folder path: ${migrationsFolder}`);
     
     // Check if migrations folder exists
