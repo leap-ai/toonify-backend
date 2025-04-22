@@ -66,10 +66,24 @@ const purchaseCredits = async (req: Request, res: Response, next: NextFunction) 
       return;
     }
 
-    const { amount } = req.body;
+    const { amount, transactionId, productId } = req.body;
+    
     if (!amount || amount <= 0) {
       res.status(400).json({ error: 'Invalid amount' });
       return;
+    }
+
+    // Check if this transaction has already been processed
+    if (transactionId) {
+      const existingTransaction = await db.query.creditsTransactions.findFirst({
+        where: eq(creditsTransactions.transactionId, transactionId),
+      });
+
+      if (existingTransaction) {
+        // Transaction already processed, return success
+        res.json(existingTransaction);
+        return;
+      }
     }
 
     // Create transaction record
@@ -78,6 +92,9 @@ const purchaseCredits = async (req: Request, res: Response, next: NextFunction) 
       userId: session.user.id,
       amount,
       type: 'purchase',
+      paymentId: transactionId || null,
+      transactionId: transactionId || null,
+      productId: productId || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();

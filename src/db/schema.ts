@@ -56,6 +56,8 @@ export const creditsTransactions = pgTable('credits_transactions', {
   amount: integer('amount').notNull(),
   type: text('type').notNull(),
   paymentId: text('payment_id'),
+  transactionId: text('transaction_id'),
+  productId: text('product_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

@@ -10,7 +10,7 @@ export function getApplePrivateKey(): string {
   }
 
   // If not running in prod, use local fallback (for dev)
-  const localPath = path.resolve(process.cwd(), 'secrets/AuthKey.p8');
+  const localPath = path.resolve(process.cwd(), 'secrets/key.p8');
 
   if (fs.existsSync(localPath)) {
     return fs.readFileSync(localPath, 'utf8');
