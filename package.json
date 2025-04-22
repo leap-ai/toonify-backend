@@ -2,15 +2,16 @@
     "name": "toonify-backend",
     "version": "1.0.0",
     "main": "index.js",
+    "type": "commonjs",
     "scripts": {
         "dev": "tsx src/index.ts",
         "generate": "drizzle-kit generate:pg",
         "migrate": "drizzle-kit push:pg",
-        "migrate:prod": "tsx src/scripts/migrate-prod.ts",
+        "migrate:prod": "node dist/scripts/migrate-prod.js",
         "studio": "drizzle-kit studio",
         "build": "tsc",
         "start": "node dist/index.js",
-        "create-db": "node src/scripts/create-db.mjs",
+        "create-db": "tsx src/scripts/create-db.ts",
         "setup": "npm run create-db && npm run migrate",
         "add-credits": "tsx src/scripts/addCredits.ts",
         "reset-db": "tsx src/scripts/reset-db.ts"
@@ -50,6 +51,5 @@
         "@types/pg": "^8.11.13",
         "ts-node": "^10.9.2",
         "typescript": "^5.3.3"
-    },
-    "type": "module"
+    }
 }

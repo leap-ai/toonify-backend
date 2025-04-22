@@ -19,9 +19,6 @@ const pool = new Pool({
 // Create a Drizzle instance
 const db = drizzle(pool);
 
-// Get the directory name
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // Run migrations
 async function main() {
   console.log('Running migrations in production...');
