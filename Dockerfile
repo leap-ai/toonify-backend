@@ -2,9 +2,6 @@ FROM node:18
 
 WORKDIR /app
 
-# Install psql client (needed for temporary reset script)
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
-
 # Copy package files
 COPY package*.json ./
 RUN npm install

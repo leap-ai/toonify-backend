@@ -94,7 +94,6 @@ CREATE TABLE "payments" (
     "amount" INTEGER NOT NULL, -- Amount in smallest currency unit (e.g., cents) or use NUMERIC/DECIMAL
     "currency" TEXT DEFAULT 'USD',
     "status" TEXT NOT NULL DEFAULT 'Success', -- e.g., 'Pending', 'Success', 'Failed'
-    "payment_id" TEXT, -- Your internal or a Stripe payment intent ID, etc.
     "transaction_id" TEXT, -- RevenueCat transaction ID (providerTransactionId from webhook)
     "store_transaction_id" TEXT, -- Apple/Google transaction ID
     "product_id" TEXT, -- Identifier of the purchased product

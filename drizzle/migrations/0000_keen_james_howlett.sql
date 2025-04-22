@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS "payments" (
 	"amount" integer NOT NULL,
 	"currency" text DEFAULT 'USD',
 	"status" text DEFAULT 'Success' NOT NULL,
-	"payment_id" text,
 	"transaction_id" text,
 	"store_transaction_id" text,
 	"product_id" text,
