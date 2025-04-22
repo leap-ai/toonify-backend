@@ -23,12 +23,21 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/toonify
-      JWT_SECRET: changeme
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/toonify}
+      JWT_SECRET: ${JWT_SECRET:-changeme}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID}
+      APPLE_KEY_ID: ${APPLE_KEY_ID}
+      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY}
+      APPLE_APP_BUNDLE_IDENTIFIER: ${APPLE_APP_BUNDLE_IDENTIFIER}
+      FAL_API_KEY: ${FAL_API_KEY}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm run dev"
+    command: sh -c "npm run migrate:prod && npm start"
 
 volumes:
   postgres_data:
