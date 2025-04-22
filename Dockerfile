@@ -9,6 +9,9 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Ensure migrations folder exists
+RUN mkdir -p /app/drizzle/migrations/meta
+
 # Build TypeScript
 RUN npm run build
 
