@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import { getApplePrivateKey } from './utils/helper';
 
 dotenv.config();
 
@@ -52,13 +53,13 @@ export const config = {
     const teamId = config.apple.teamId;
     const clientId = config.apple.clientId;
     const keyId = config.apple.keyId;
-    const privateKey = config.apple.privateKey.replace(/\\n/g, '\n');
+    const privateKey = getApplePrivateKey();
 
     const payload = {
-      iss: "https://appleid.apple.com",
+      iss: teamId,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 86400 * 180,
-      aud: clientId,
+      aud: "https://appleid.apple.com",
       sub: clientId,
     };
 
