@@ -49,19 +49,6 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// Application Schema
-export const creditsTransactions = pgTable('credits_transactions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
-  amount: integer('amount').notNull(),
-  type: text('type').notNull(),
-  paymentId: text('payment_id'),
-  transactionId: text('transaction_id'),
-  productId: text('product_id'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
 export const generations = pgTable('generations', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
@@ -78,8 +65,11 @@ export const payments = pgTable('payments', {
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   amount: integer('amount').notNull(),
   currency: text('currency').default('USD'),
-  status: text('status').notNull(),
-  revenuecatTransactionId: text('revenuecat_transaction_id'),
+  status: text('status').notNull().default('Success'),
+  paymentId: text('payment_id'),
+  transactionId: text('transaction_id'),
+  storeTransactionId: text('store_transaction_id'),
+  productId: text('product_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

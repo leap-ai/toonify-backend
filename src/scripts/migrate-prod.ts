@@ -25,7 +25,6 @@ async function main() {
   try {
     // Define migrations folder path - using process.cwd() to get the current working directory
     const migrationsFolder = path.join(process.cwd(), 'drizzle/migrations');
-    console.log(`Migrations folder path: ${migrationsFolder}`);
     
     // Check if migrations folder exists
     if (!fs.existsSync(migrationsFolder)) {
@@ -46,18 +45,6 @@ async function main() {
       console.error(`_journal.json file does not exist: ${journalFile}`);
       process.exit(1);
     }
-    
-    // List files in migrations folder
-    console.log('Files in migrations folder:');
-    fs.readdirSync(migrationsFolder).forEach(file => {
-      console.log(`- ${file}`);
-    });
-    
-    // List files in meta folder
-    console.log('Files in meta folder:');
-    fs.readdirSync(metaFolder).forEach(file => {
-      console.log(`- ${file}`);
-    });
     
     // Run migrations from the migrations folder
     await migrate(db, { migrationsFolder });

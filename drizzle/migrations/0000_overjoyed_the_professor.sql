@@ -14,16 +14,6 @@ CREATE TABLE IF NOT EXISTS "account" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "credits_transactions" (
-	"id" text PRIMARY KEY NOT NULL,
-	"user_id" text NOT NULL,
-	"amount" integer NOT NULL,
-	"type" text NOT NULL,
-	"payment_id" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "generations" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
@@ -40,8 +30,11 @@ CREATE TABLE IF NOT EXISTS "payments" (
 	"user_id" text NOT NULL,
 	"amount" integer NOT NULL,
 	"currency" text DEFAULT 'USD',
-	"status" text NOT NULL,
-	"revenuecat_transaction_id" text,
+	"status" text DEFAULT 'Success' NOT NULL,
+	"payment_id" text,
+	"transaction_id" text,
+	"store_transaction_id" text,
+	"product_id" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -81,12 +74,6 @@ CREATE TABLE IF NOT EXISTS "verification" (
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "credits_transactions" ADD CONSTRAINT "credits_transactions_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;

@@ -17,6 +17,7 @@ app.use(cors());
 
 // Auth Routes
 app.all('/api/auth/*splat', toNodeHandler(auth));
+app.use('/api/payments', paymentsRoutes);
 
 app.use(express.json());
 

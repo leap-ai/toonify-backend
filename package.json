@@ -13,7 +13,6 @@
         "start": "node dist/index.js",
         "create-db": "tsx src/scripts/create-db.ts",
         "setup": "npm run create-db && npm run migrate",
-        "add-credits": "tsx src/scripts/addCredits.ts",
         "reset-db": "tsx src/scripts/reset-db.ts"
     },
     "dependencies": {
