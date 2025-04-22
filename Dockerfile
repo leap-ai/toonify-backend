@@ -18,8 +18,14 @@ RUN mkdir -p /app/drizzle/migrations/meta && \
       echo '{"version":"5","dialect":"pg","entries":[]}' > /app/drizzle/migrations/meta/_journal.json; \
     fi
 
-# Build TypeScript
-RUN npm run build
+# Make scripts executable
+RUN chmod +x /app/scripts/check-build.sh
+
+# Build TypeScript with verbose output
+RUN npm run build --verbose
+
+# Check build output
+RUN /app/scripts/check-build.sh
 
 # Expose port
 EXPOSE 3000
