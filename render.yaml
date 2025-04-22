@@ -1,6 +1,6 @@
 services:
   # PostgreSQL database
-  - type: pgsql
+  - type: postgres
     name: toonify-db
     ipAllowList: []
     plan: free
@@ -14,7 +14,7 @@ services:
     name: toonify-backend
     env: docker
     dockerfilePath: ./Dockerfile
-    dockerContext: ./
+    dockerContext: .
     dockerCommand: sh -c "npm run migrate:prod && npm start"
     envVars:
       - key: DATABASE_URL
