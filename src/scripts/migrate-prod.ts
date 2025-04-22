@@ -23,8 +23,8 @@ async function main() {
   console.log('Running migrations in production...');
   
   try {
-    // Define migrations folder path
-    const migrationsFolder = path.resolve(__dirname, '../../drizzle/migrations');
+    // Define migrations folder path - using process.cwd() to get the current working directory
+    const migrationsFolder = path.join(process.cwd(), 'drizzle/migrations');
     console.log(`Migrations folder path: ${migrationsFolder}`);
     
     // Check if migrations folder exists
