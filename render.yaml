@@ -1,14 +1,4 @@
 services:
-  # PostgreSQL database
-  - type: postgres
-    name: toonify-db
-    ipAllowList: []
-    plan: free
-    postgresMajorVersion: 15
-    databaseName: toonify
-    user: postgres
-    password: ${DB_PASSWORD}
-    
   # Backend API
   - type: web
     name: toonify-backend
@@ -40,4 +30,37 @@ services:
       - key: FAL_API_KEY
         sync: false
       - key: BETTER_AUTH_SECRET
-        sync: false 
+        sync: false
+
+databases:
+  # PostgreSQL database
+  - name: toonify-db
+    databaseName: toonify
+    user: admin
+    password: ${DB_PASSWORD}
+    plan: free
+    postgresMajorVersion: 15 
+
+envVars:
+  - key: DB_PASSWORD
+    generateValue: true
+  - key: GOOGLE_CLIENT_ID
+    sync: false
+  - key: GOOGLE_CLIENT_SECRET
+    sync: false
+  - key: APPLE_CLIENT_ID
+    sync: false
+  - key: APPLE_TEAM_ID
+    sync: false
+  - key: APPLE_KEY_ID
+    sync: false
+  - key: APPLE_PRIVATE_KEY
+    sync: false
+  - key: APPLE_APP_BUNDLE_IDENTIFIER
+    value: com.leapai.toonify
+  - key: FAL_API_KEY
+    sync: false
+  - key: BETTER_AUTH_SECRET
+    sync: false
+    
+    
