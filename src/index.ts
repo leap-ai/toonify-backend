@@ -2,10 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import auth from './src/auth';
-import creditsRoutes from './src/routes/credits';
-import generationRoutes from './src/routes/generation';
-import paymentsRoutes from './src/routes/payments';
+import auth from './auth';
+import creditsRoutes from './routes/credits';
+import generationRoutes from './routes/generation';
+import paymentsRoutes from './routes/payments';
 
 dotenv.config();
 

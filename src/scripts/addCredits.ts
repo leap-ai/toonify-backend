@@ -1,5 +1,5 @@
-import { db } from '../src/db';
-import { user, creditsTransactions } from '../src/db/schema';
+import { db } from '../db';
+import { user, creditsTransactions } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 async function addCredits() {

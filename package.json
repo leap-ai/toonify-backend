@@ -3,18 +3,17 @@
     "version": "1.0.0",
     "main": "index.js",
     "scripts": {
-        "dev": "tsx index.ts",
-        "seed": "tsx seed.ts",
+        "dev": "tsx src/index.ts",
         "generate": "drizzle-kit generate:pg",
         "migrate": "drizzle-kit push:pg",
-        "migrate:prod": "tsx scripts/migrate-prod.ts",
+        "migrate:prod": "tsx src/scripts/migrate-prod.ts",
         "studio": "drizzle-kit studio",
         "build": "tsc",
         "start": "node dist/index.js",
-        "create-db": "node scripts/create-db.mjs",
+        "create-db": "node src/scripts/create-db.mjs",
         "setup": "npm run create-db && npm run migrate",
-        "add-credits": "tsx scripts/addCredits.ts",
-        "reset-db": "tsx scripts/reset-db.ts"
+        "add-credits": "tsx src/scripts/addCredits.ts",
+        "reset-db": "tsx src/scripts/reset-db.ts"
     },
     "dependencies": {
         "@fal-ai/client": "^1.4.0",
