@@ -153,30 +153,6 @@ router.post(
   }
 );
 
-const getBalance = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-
-    if (!session?.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    const userVal = await db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
-      columns: {
-        creditsBalance: true,
-      },
-    });
-
-    res.json({ creditsBalance: userVal?.creditsBalance || 0 });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // Get payment history
 router.get('/history', async (req, res): Promise<any> => {
   try {
@@ -188,12 +164,12 @@ router.get('/history', async (req, res): Promise<any> => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    const paymentHistory = await db.select()
+    const [id, userId, amount, status, currency, createdAt] = await db.select()
       .from(payments)
       .where(eq(payments.userId, session.user.id))
       .orderBy(payments.createdAt);
 
-    res.json(paymentHistory);
+    res.json({id, userId, amount, status, currency, createdAt});
   } catch (error) {
     console.error('Error fetching payment history:', error);
     res.status(500).json({ error: 'Internal server error' });
