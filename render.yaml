@@ -26,7 +26,7 @@ services:
       - key: APPLE_PRIVATE_KEY
         sync: false
       - key: APPLE_APP_BUNDLE_IDENTIFIER
-        sync: false
+        value: com.leapai.toonify
       - key: FAL_API_KEY
         sync: false
       - key: BETTER_AUTH_SECRET
@@ -40,27 +40,4 @@ databases:
     password: ${DB_PASSWORD}
     plan: free
     postgresMajorVersion: 15 
-
-envVars:
-  - key: DB_PASSWORD
-    generateValue: true
-  - key: GOOGLE_CLIENT_ID
-    sync: false
-  - key: GOOGLE_CLIENT_SECRET
-    sync: false
-  - key: APPLE_CLIENT_ID
-    sync: false
-  - key: APPLE_TEAM_ID
-    sync: false
-  - key: APPLE_KEY_ID
-    sync: false
-  - key: APPLE_PRIVATE_KEY
-    sync: false
-  - key: APPLE_APP_BUNDLE_IDENTIFIER
-    value: com.leapai.toonify
-  - key: FAL_API_KEY
-    sync: false
-  - key: BETTER_AUTH_SECRET
-    sync: false
-    
     
