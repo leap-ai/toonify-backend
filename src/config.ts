@@ -13,7 +13,6 @@ const requiredEnvVars = [
   'APPLE_CLIENT_ID',
   'APPLE_TEAM_ID',
   'APPLE_KEY_ID',
-  'APPLE_PRIVATE_KEY',
   'APPLE_APP_BUNDLE_IDENTIFIER',
   'FAL_API_KEY',
   'BETTER_AUTH_SECRET',
@@ -40,7 +39,6 @@ export const config = {
     clientId: process.env.APPLE_CLIENT_ID!,
     teamId: process.env.APPLE_TEAM_ID!,
     keyId: process.env.APPLE_KEY_ID!,
-    privateKey: process.env.APPLE_PRIVATE_KEY!,
     appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER!,
   },
   fal: {
