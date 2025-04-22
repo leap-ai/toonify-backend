@@ -5,7 +5,7 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    preDeployCommand: psql $DATABASE_URL -f reset-tables.sql
+    preDeployCommand: npm run migrate:prod
     # , then start app
     dockerCommand: npm start
     # Remove preDeployCommand if it exists
