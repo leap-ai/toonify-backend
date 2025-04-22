@@ -3,7 +3,7 @@ import path from 'path';
 
 export function getApplePrivateKey(): string {
   // First, check for production secret file path
-  const prodPath = '/var/render/secrets/APPLE_PRIVATE_KEY_FILE';
+  const prodPath = '/etc/secrets/APPLE_PRIVATE_KEY_FILE';
 
   if (fs.existsSync(prodPath)) {
     return fs.readFileSync(prodPath, 'utf8');
