@@ -28,8 +28,8 @@ async function main() {
   
   try {
     // Define migrations folder path
-    const migrationsFolder = path.join(__dirname, '../drizzle/migrations');
-    console.log(`Migrations folder path: ${migrationsFolder}`);
+    const migrationsFolder = path.join(__dirname, '/drizzle/migrations');
+    console.log(`Migrations folder path: ${__dirname} + '/drizzle/migrations' = ${migrationsFolder}`);
     
     // Check if migrations folder exists
     if (!fs.existsSync(migrationsFolder)) {

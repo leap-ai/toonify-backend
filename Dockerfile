@@ -10,12 +10,12 @@ RUN npm install
 COPY . .
 
 # Ensure migrations folder exists and has the correct structure
-RUN mkdir -p /app/drizzle/migrations/meta && \
-    if [ -f /app/drizzle/migrations/meta/_journal.json ]; then \
+RUN mkdir -p /app/src/drizzle/migrations/meta && \
+    if [ -f /app/src/drizzle/migrations/meta/_journal.json ]; then \
       echo "Migration files exist"; \
     else \
       echo "Creating migration files"; \
-      echo '{"version":"5","dialect":"pg","entries":[]}' > /app/drizzle/migrations/meta/_journal.json; \
+      echo '{"version":"5","dialect":"pg","entries":[]}' > /app/src/drizzle/migrations/meta/_journal.json; \
     fi
 
 # Build TypeScript
