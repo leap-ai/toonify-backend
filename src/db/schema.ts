@@ -66,7 +66,6 @@ export const payments = pgTable('payments', {
   amount: integer('amount').notNull(),
   currency: text('currency').default('USD'),
   status: text('status').notNull().default('Success'),
-  paymentId: text('payment_id'),
   transactionId: text('transaction_id'),
   storeTransactionId: text('store_transaction_id'),
   productId: text('product_id'),
