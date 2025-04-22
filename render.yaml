@@ -37,7 +37,6 @@ databases:
   - name: toonify-db
     databaseName: toonify
     user: admin
-    password: ${DB_PASSWORD}
     plan: free
     postgresMajorVersion: 15 
     
