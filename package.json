@@ -2,7 +2,7 @@
 	"name": "toonify-backend",
 	"version": "1.0.0",
 	"main": "index.js",
-	"type": "commonjs",
+	"packageManager": "bun",
 	"scripts": {
 		"dev": "tsx src/index.ts",
 		"generate": "drizzle-kit generate:pg",
