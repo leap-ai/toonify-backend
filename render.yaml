@@ -2,7 +2,7 @@ services:
   # Backend API
   - type: web
     runtime: node
-    name: toonify-backend
+    name: toonify-backend-node
     buildCommand: npm install && npm run build
     preDeployCommand: npx drizzle-kit migrate
     startCommand: npm start
