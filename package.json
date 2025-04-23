@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "tsx src/index.ts",
         "generate": "drizzle-kit generate:pg",
-        "migrate": "drizzle-kit push:pg",
+        "migrate": "drizzle-kit up:pg",
         "migrate:prod": "node dist/scripts/migrate-prod.js",
         "studio": "drizzle-kit studio",
         "build": "tsc",
