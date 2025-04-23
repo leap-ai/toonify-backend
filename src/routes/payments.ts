@@ -28,7 +28,7 @@ const rawBodySaver = (req: Request, res: Response, buf: Buffer, encoding: Buffer
 
 // --- Webhook Handler --- 
 router.post(
-  '/revenuecat/webhook', 
+  '/revenuecat', 
   express.raw({ verify: rawBodySaver, type: 'application/json' }), // Use express.raw first
   async (req: Request, res: Response): Promise<void> => {
     const signature = req.get('X-RC-Webhook-Signature'); // Correct header name from RC docs v4
