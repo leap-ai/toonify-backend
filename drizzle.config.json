@@ -3,6 +3,6 @@
   "schema": "./src/db/schema.ts",
   "driver": "pg",
   "dbCredentials": {
-    "connectionString": "postgres://postgres:postgres@localhost:5432/toonify"
+    "connectionString": "${DATABASE_URL}"
   }
-} 
+}
