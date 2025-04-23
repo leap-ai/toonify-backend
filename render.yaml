@@ -40,5 +40,5 @@ databases:
   - name: toonify-db
     databaseName: toonify
     user: admin
-    plan: free
+    plan: basic-1gb
     postgresMajorVersion: "15"
