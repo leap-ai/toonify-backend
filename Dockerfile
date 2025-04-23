@@ -12,9 +12,6 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Migrate database
-RUN npm run migrate
-
 # Expose port
 EXPOSE 3000
 

@@ -6,6 +6,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     # , then start app
+    preDeployCommand: npm run migrate
     dockerCommand: npm start
     envVars:
       - key: DATABASE_URL
