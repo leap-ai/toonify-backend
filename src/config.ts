@@ -30,26 +30,26 @@ export const config = {
 		url: process.env.DATABASE_URL,
 	},
 	jwt: {
-		secret: process.env.JWT_SECRET!,
+		secret: process.env.JWT_SECRET as string,
 	},
 	google: {
-		clientId: process.env.GOOGLE_CLIENT_ID!,
-		clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+		clientId: process.env.GOOGLE_CLIENT_ID as string,
+		clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
 	},
 	apple: {
-		clientId: process.env.APPLE_CLIENT_ID!,
-		teamId: process.env.APPLE_TEAM_ID!,
-		keyId: process.env.APPLE_KEY_ID!,
-		appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER!,
+		clientId: process.env.APPLE_CLIENT_ID as string,
+		teamId: process.env.APPLE_TEAM_ID as string,
+		keyId: process.env.APPLE_KEY_ID as string,
+		appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER as string,
 	},
 	fal: {
-		key: process.env.FAL_API_KEY!,
+		key: process.env.FAL_API_KEY as string,
 	},
 	betterAuth: {
-		secret: process.env.BETTER_AUTH_SECRET!,
+		secret: process.env.BETTER_AUTH_SECRET as string,
 	},
 	revenuecat: {
-		secret: process.env.REVENUECAT_SECRET!,
+		secret: process.env.REVENUECAT_SECRET as string,
 	},
 	// Method to generate Apple client secret on the fly
 	getAppleClientSecret: () => {
