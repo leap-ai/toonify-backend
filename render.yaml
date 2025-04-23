@@ -4,7 +4,7 @@ services:
     runtime: node
     name: toonify-backend-node
     buildCommand: bun install && bun run build
-    preDeployCommand: bunx drizzle-kit migrate --config ./drizzle.config.js
+    preDeployCommand: bunx drizzle-kit migrate
     startCommand: bun run start
     autoDeploy: true
     envVars:
