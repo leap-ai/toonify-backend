@@ -1,5 +1,7 @@
 // drizzle.config.js
-require('dotenv').config(); // Load .env file vars into process.env
+import dotenv from "dotenv";
+dotenv.config();
+// Load .env file vars into process.env
 import { defineConfig } from "drizzle-kit";
 
 // Ensure the DATABASE_URL is set
