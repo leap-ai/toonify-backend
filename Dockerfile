@@ -12,7 +12,7 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-RUN npm run generate
+RUN npm run migrate
 
 # Expose port
 EXPOSE 3000
