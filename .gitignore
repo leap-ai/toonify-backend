@@ -1,6 +1,5 @@
 node_modules
 .env
 key.p8
-SubscriptionKey_HSAL6K58Q3.p8
 dist/
 secrets/
