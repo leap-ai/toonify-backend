@@ -1,12 +1,13 @@
 services:
   # Backend API
   - type: web
+    runtime: node
     name: toonify-backend
     env: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
     # , then start app
-    preDeployCommand: npm run migrate
+    preDeployCommand: npx drizzle-kit migrate --dialect=postgresql --url=postgresql://admin:pvyblaxSv2XBVFVMCd8ylssJVRlh8tfY@dpg-d04fgpqli9vc73eoohh0-a.oregon-postgres.render.com/toonify_tabn
     dockerCommand: npm start
     envVars:
       - key: DATABASE_URL
@@ -33,12 +34,3 @@ services:
         sync: false
       - key: REVENUECAT_SECRET
         sync: false
-
-databases:
-  # PostgreSQL database
-  - name: toonify-db
-    databaseName: toonify
-    user: admin
-    plan: free
-    postgresMajorVersion: 15 
-    
