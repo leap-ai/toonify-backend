@@ -5,6 +5,7 @@ import { payments, user } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
+import { config } from '../config';
 
 const router = Router();
 
@@ -27,12 +28,12 @@ const rawBodySaver = (req: Request, res: Response, buf: Buffer, encoding: Buffer
 
 // --- Webhook Handler --- 
 router.post(
-  '/webhook', 
+  'revenuecat/webhook', 
   express.raw({ verify: rawBodySaver, type: 'application/json' }), // Use express.raw first
   async (req: Request, res: Response): Promise<void> => {
     const signature = req.get('X-RC-Webhook-Signature'); // Correct header name from RC docs v4
     const receivedBody = (req as any).rawBody; // Get the raw body saved by middleware
-    const secret = process.env.REVENUECAT_SECRET;
+    const secret = config.revenuecat.secret;
 
     console.log('Received RevenueCat Webhook');
 

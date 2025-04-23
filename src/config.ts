@@ -16,6 +16,7 @@ const requiredEnvVars = [
   'APPLE_APP_BUNDLE_IDENTIFIER',
   'FAL_API_KEY',
   'BETTER_AUTH_SECRET',
+  'REVENUECAT_SECRET',
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -47,6 +48,10 @@ export const config = {
   betterAuth: {
     secret: process.env.BETTER_AUTH_SECRET!,
   },
+  revenuecat: {
+    secret: process.env.REVENUECAT_SECRET!,
+  },
+  // Method to generate Apple client secret on the fly
   getAppleClientSecret: () => {
     const teamId = config.apple.teamId;
     const clientId = config.apple.clientId;
