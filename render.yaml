@@ -1,16 +1,17 @@
 services:
   # Backend API
   - type: web
-    runtime: docker
+    runtime: node
     name: toonify-backend
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    # , then start app
+    buildCommand: npm install && npm run build
     preDeployCommand: npx drizzle-kit migrate
-    dockerCommand: npm start
+    startCommand: npm start
+    autoDeploy: true
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: toonify-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID
