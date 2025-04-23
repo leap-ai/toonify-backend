@@ -35,6 +35,8 @@ services:
         sync: false
       - key: BETTER_AUTH_SECRET
         sync: false
+      - key: REVENUECAT_SECRET
+        sync: false
 
 databases:
   # PostgreSQL database
