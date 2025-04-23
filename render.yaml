@@ -6,7 +6,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     # , then start app
-    preDeployCommand: npx drizzle-kit@latest --help && npx drizzle-kit@latest migrate --dialect=postgresql --url=postgresql://admin:pvyblaxSv2XBVFVMCd8ylssJVRlh8tfY@dpg-d04fgpqli9vc73eoohh0-a.oregon-postgres.render.com/toonify_tabn
+    preDeployCommand: npx drizzle-kit@latest migrate --dialect=postgresql --url=postgresql://admin:pvyblaxSv2XBVFVMCd8ylssJVRlh8tfY@dpg-d04fgpqli9vc73eoohh0-a.oregon-postgres.render.com/toonify_tabn
     dockerCommand: npm start
     envVars:
       - key: DATABASE_URL
