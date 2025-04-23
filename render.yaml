@@ -1,7 +1,7 @@
 services:
   # Backend API
   - type: web
-    runtime: node
+    runtime: docker
     name: toonify-backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
