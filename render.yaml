@@ -6,13 +6,11 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     # , then start app
-    preDeployCommand: npx drizzle-kit migrate
+    preDeployCommand: npx drizzle-kit migrate --dialect=postgresql --url=postgresql://admin:pvyblaxSv2XBVFVMCd8ylssJVRlh8tfY@dpg-d04fgpqli9vc73eoohh0-a.oregon-postgres.render.com/toonify_tabn
     dockerCommand: npm start
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: toonify-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID
@@ -41,4 +39,4 @@ databases:
     databaseName: toonify
     user: admin
     plan: basic-1gb
-    postgresMajorVersion: "15"
+    postgresMajorVersion: "16"
