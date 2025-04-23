@@ -81,6 +81,7 @@ router.post(
     // --- 4. Grant Credits Logic & Log Payment --- 
     // Focus on events indicating a successful one-time purchase
     if (eventType === 'NON_RENEWING_PURCHASE') { 
+      console.log('>> Processing non-renewing purchase event', event);
       const productId = event.product_id;
       const appUserId = event.app_user_id as string;
       const transactionId = event.transaction_id; // RC transaction ID
