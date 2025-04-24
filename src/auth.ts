@@ -23,7 +23,7 @@ const auth = betterAuth({
   },
   socialProviders: {
     apple: { 
-        clientId: config.apple.appBundleIdentifier as string,
+        clientId: config.apple.clientId as string,
         clientSecret: config.getAppleClientSecret() as string,
         // Optional
         appBundleIdentifier: config.apple.appBundleIdentifier as string,
