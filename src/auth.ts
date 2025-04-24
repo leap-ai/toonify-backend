@@ -7,7 +7,7 @@ import * as schema from "./db/schema";
 const auth = betterAuth({
   baseURL: config.betterAuth.baseURL,
   secret: config.betterAuth.secret,
-  trustedOrigins: ["com.leapai.toonify://", "host.exp.Exponent"],
+  trustedOrigins: ["com.leapai.toonify://", "host.exp.Exponent", "exp+toonify://"],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
