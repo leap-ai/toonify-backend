@@ -24,7 +24,6 @@ app.use(express.json());
 // Other Routes
 app.use('/api/credits', creditsRoutes);
 app.use('/api/generation', generationRoutes);
-app.use('/api/payments', paymentsRoutes);
 
 // get my session
 app.get("/api/me", async (req: express.Request, res: express.Response): Promise<void> => {
