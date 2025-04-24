@@ -5,6 +5,8 @@ import { config } from "./config";
 import * as schema from "./db/schema";
  
 const auth = betterAuth({
+  baseURL: config.betterAuth.baseURL,
+  secret: config.betterAuth.secret,
   trustedOrigins: ["com.leapai.toonify://", "host.exp.Exponent"],
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -25,12 +27,10 @@ const auth = betterAuth({
         clientSecret: config.getAppleClientSecret() as string,
         // Optional
         appBundleIdentifier: config.apple.appBundleIdentifier as string,
-        redirectUri: `/api/auth/callback/apple`
     },
     google: {
       clientId: config.google.clientId as string,
       clientSecret: config.google.clientSecret as string,
-      redirectUri: `/api/auth/callback/google`
     },
   },
   user: {

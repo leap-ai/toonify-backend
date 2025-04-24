@@ -15,6 +15,7 @@ const requiredEnvVars = [
 	"APPLE_KEY_ID",
 	"APPLE_APP_BUNDLE_IDENTIFIER",
 	"FAL_API_KEY",
+	"BETTER_AUTH_BASE_URL",
 	"BETTER_AUTH_SECRET",
 	"REVENUECAT_SECRET",
 ] as const;
@@ -46,6 +47,7 @@ export const config = {
 		key: process.env.FAL_API_KEY as string,
 	},
 	betterAuth: {
+		baseURL: process.env.BETTER_AUTH_BASE_URL as string,
 		secret: process.env.BETTER_AUTH_SECRET as string,
 	},
 	revenuecat: {
