@@ -29,17 +29,24 @@ const upload = multer({
 // POST /api/users/me/profile-picture 
 // Handles multipart/form-data, extracts file buffer, converts to Data URI, saves to DB
 router.post('/me/profile-picture', upload.single('profilePicture'), async (req: Request, res: Response, next: NextFunction): Promise<void> => { 
+  console.log('[POST /api/users/me/profile-picture] Received request');
+  console.log('Request Headers:', JSON.stringify(req.headers, null, 2)); // Log incoming headers
+
   try {
     // 1. Authenticate user 
+    console.log('Attempting to get session...');
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
+    console.log('Get Session Result:', session ? { userId: session.user.id } : null); // Log session result (don't log full session)
 
     if (!session?.user?.id) {
+      console.log('Authentication failed: No valid session found.');
       res.status(401).json({ error: 'Unauthorized' });
       return; 
     }
     const userId = session.user.id;
+    console.log(`Authenticated as user: ${userId}`);
 
     // 2. Check if file was uploaded by multer and is in memory
     if (!req.file || !req.file.buffer) {
