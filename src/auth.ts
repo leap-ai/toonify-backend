@@ -45,6 +45,10 @@ const auth = betterAuth({
         type: "number",
         default: 0,
       },
+      image: {
+        type: "string",
+        nullable: true
+      }
     },
   },
 });

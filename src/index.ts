@@ -6,6 +6,7 @@ import auth from './auth';
 import creditsRoutes from './routes/credits';
 import generationRoutes from './routes/generation';
 import paymentsRoutes from './routes/payments';
+import userRoutes from './routes/user';
 
 dotenv.config();
 
@@ -15,15 +16,20 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Auth Routes
+// Removed static file serving for /uploads
+// app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+
+// Auth Routes handled by better-auth
 app.all('/api/auth/*splat', toNodeHandler(auth));
 app.use('/api/payments', paymentsRoutes);
 
+// Middleware for parsing JSON bodies
 app.use(express.json());
 
-// Other Routes
+// API Routes
 app.use('/api/credits', creditsRoutes);
 app.use('/api/generation', generationRoutes);
+app.use('/api/users', userRoutes);
 
 // get my session
 app.get("/api/me", async (req: express.Request, res: express.Response): Promise<void> => {
