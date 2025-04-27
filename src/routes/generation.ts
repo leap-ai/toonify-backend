@@ -114,4 +114,50 @@ router.get('/history', async (req, res): Promise<any> => {
   }
 });
 
+// Delete a specific generation by ID
+router.delete('/:id', async (req, res): Promise<any> => {
+  try {
+    const generationId = req.params.id;
+    
+    // Validate request
+    if (!generationId) {
+      return res.status(400).json({ error: 'Generation ID is required' });
+    }
+    
+    // Get authenticated user
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+
+    if (!session?.user?.id) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // First check if the generation exists and belongs to the user
+    const [existingGeneration] = await db.select()
+      .from(generations)
+      .where(eq(generations.id, generationId))
+      .limit(1);
+    
+    if (!existingGeneration) {
+      return res.status(404).json({ error: 'Generation not found' });
+    }
+    
+    // Verify the generation belongs to the authenticated user
+    if (existingGeneration.userId !== session.user.id) {
+      return res.status(403).json({ error: 'You do not have permission to delete this generation' });
+    }
+    
+    // Delete the generation from the database
+    await db.delete(generations)
+      .where(eq(generations.id, generationId));
+    
+    // Return success response
+    res.json({ success: true, message: 'Generation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting generation:', error);
+    res.status(500).json({ error: 'Failed to delete the generation' });
+  }
+});
+
 export default router; 
