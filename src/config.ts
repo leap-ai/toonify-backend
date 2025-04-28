@@ -14,10 +14,10 @@ const requiredEnvVars = [
 	"APPLE_TEAM_ID",
 	"APPLE_KEY_ID",
 	"APPLE_APP_BUNDLE_IDENTIFIER",
-	"FAL_API_KEY",
 	"BETTER_AUTH_URL",
 	"BETTER_AUTH_SECRET",
 	"REVENUECAT_SECRET",
+	"REPLICATE_API_TOKEN",
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -43,8 +43,8 @@ export const config = {
 		keyId: process.env.APPLE_KEY_ID as string,
 		appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER as string,
 	},
-	fal: {
-		key: process.env.FAL_API_KEY as string,
+	replicate: {
+		token: process.env.REPLICATE_API_TOKEN as string,
 	},
 	betterAuth: {
 		baseURL: process.env.BETTER_AUTH_URL as string,
