@@ -2,7 +2,7 @@ import express, { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { db } from '../db';
 import { payments, user } from '../db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
 import { config } from '../config';
@@ -198,7 +198,7 @@ router.get('/history', async (req, res): Promise<any> => {
     })
     .from(payments)
     .where(eq(payments.userId, session.user.id))
-    .orderBy(payments.createdAt);
+    .orderBy(desc(payments.createdAt));
 
     res.json(paymentHistory);
   } catch (error) {
