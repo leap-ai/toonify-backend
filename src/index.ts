@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
+import path from 'path';
 import auth from './auth';
 import creditsRoutes from './routes/credits';
 import generationRoutes from './routes/generation';
@@ -15,6 +16,9 @@ const port = process.env.PORT || 3000;
 
 
 app.use(cors());
+
+// Serve static files from the 'public' directory inside 'dist'
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Removed static file serving for /uploads
 // app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
