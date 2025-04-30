@@ -10,7 +10,7 @@ export const user = pgTable('user', {
   image: text('image'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  creditsBalance: integer('credits_balance').notNull().default(0),
+  creditsBalance: integer('credits_balance').notNull().default(10),
 });
 
 export const session = pgTable('session', {

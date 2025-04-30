@@ -5,8 +5,8 @@
 	"packageManager": "bun",
 	"scripts": {
 		"dev": "tsx src/index.ts",
-		"generate": "drizzle-kit generate:pg",
-		"migrate": "drizzle-kit up:pg",
+		"generate": "bunx drizzle-kit generate",
+		"migrate": "bunx drizzle-kit migrate",
 		"migrate:prod": "node dist/scripts/migrate-prod.js",
 		"studio": "drizzle-kit studio",
 		"build": "tsc",
