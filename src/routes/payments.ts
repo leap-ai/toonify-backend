@@ -87,7 +87,7 @@ router.post(
         if (nonAnonymousAlias) {
             correctAppUserId = nonAnonymousAlias;
         } else {
-            console.warn(`Anonymous ID received with no non-anonymous alias. Cannot assign credits.`);
+            console.warn(`Anonymous ID received with no non-anonymous alias. Cannot assign credits.`, aliases);
             res.status(200).send('Event processed (anonymous ID with no clear alias).');
             return; 
         }
