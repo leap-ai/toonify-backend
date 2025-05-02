@@ -50,6 +50,9 @@ const auth = betterAuth({
         nullable: true
       }
     },
+    deleteUser: {
+      enabled: true,
+    }
   },
 });
 
