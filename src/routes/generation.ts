@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { generateCartoonImage, uploadImageToFal } from '../services/imageGeneration';
+import { generateImageWithVariant, uploadImageToFal, ImageVariant } from '../services/imageGeneration';
 import { db } from '../db';
 import { generations, user } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -21,6 +21,9 @@ const upload = multer({
   }
 });
 
+// Define allowed variants - sync with ImageVariant in service
+const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix'];
+
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
     const session = await auth.api.getSession({
@@ -35,6 +38,16 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     if (!file) {
       return res.status(400).json({ error: 'Image file is required' });
     }
+
+    // --- Get variant from request body ---
+    const variant = req.body.variant as ImageVariant; 
+    if (!variant || !ALLOWED_VARIANTS.includes(variant)) {
+      // Default to 'cartoon' if variant is missing or invalid
+      console.warn(`Invalid or missing variant: ${variant}. Defaulting to 'toon'.`);
+      // return res.status(400).json({ error: `Invalid or missing variant. Allowed variants: ${ALLOWED_VARIANTS.join(', ')}` });
+    }
+    const selectedVariant = ALLOWED_VARIANTS.includes(variant) ? variant : 'toon';
+    // --------------------------------------
 
     // Check user credits
     const [userVal] = await db.select()
@@ -58,16 +71,17 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     const falImageUrl = await uploadImageToFal(base64Image);
     console.log('Image uploaded to fal.ai:', falImageUrl);
 
-    // Generate cartoon image
-    const cartoonImageUrl = await generateCartoonImage(falImageUrl);
-    console.log('Cartoon image generated:', cartoonImageUrl);
+    // Generate cartoon image using the new service function with variant
+    const generatedImageUrl = await generateImageWithVariant(falImageUrl, selectedVariant);
+    console.log(`Image generated with variant ${selectedVariant}:`, generatedImageUrl);
 
     // Save generation to database
     const [generation] = await db.insert(generations).values({
       id: crypto.randomUUID(),
       userId: session.user.id,
       originalImageUrl: falImageUrl,
-      cartoonImageUrl: cartoonImageUrl,
+      cartoonImageUrl: generatedImageUrl,
+      variant: selectedVariant,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: 'completed',

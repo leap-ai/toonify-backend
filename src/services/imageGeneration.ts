@@ -1,10 +1,15 @@
 import axios from 'axios';
 import { fal } from "@fal-ai/client";
+import replicate from 'replicate';
 import { config } from '../config';
 
 // Initialize fal.ai client with API key
 fal.config({
   credentials: config.fal.key,
+});
+
+const replicateService = new replicate({
+  auth: config.replicate.token,
 });
 
 interface GenerationResult {
@@ -14,6 +19,10 @@ interface GenerationResult {
   }[];
   prompt: string;
 }
+
+// --- Define allowed image variants ---
+export type ImageVariant = 'toon' | 'ghiblix';
+// ------------------------------------
 
 // Function to upload image to fal.ai storage
 export async function uploadImageToFal(base64Image: string): Promise<string> {
@@ -39,8 +48,8 @@ export async function uploadImageToFal(base64Image: string): Promise<string> {
   }
 }
 
-// Function to generate cartoon image from fal.ai URL
-export async function generateCartoonImage(imageUrl: string): Promise<string> {
+// To generate cartoon image from fal.ai URL using the cartoonify model
+async function generateWithFalCartoonify(imageUrl: string): Promise<string> {
   try {
     const response = await axios.post<GenerationResult>(
       'https://fal.run/fal-ai/cartoonify',
@@ -63,5 +72,94 @@ export async function generateCartoonImage(imageUrl: string): Promise<string> {
   } catch (error) {
     console.error('Error generating cartoon image:', error);
     throw new Error('Failed to generate cartoon image');
+  }
+}
+
+// To generate cartoon image from Replicate using the mirage-ghibli model
+async function generateWithGhiblixModel(imageUrl: string): Promise<string> {
+  try {
+    console.log(`Generating Ghibli style for: ${imageUrl}`);
+    const input = {
+      image: imageUrl,
+      prompt: "GHBLI anime style photo",
+      go_fast: true,
+      guidance_scale: 10,
+      prompt_strength: 0.77,
+      num_inference_steps: 38
+    };
+  
+    const response = await replicateService.run("aaronaftab/mirage-ghibli:166efd159b4138da932522bc5af40d39194033f587d9bdbab1e594119eae3e7f", {
+      input,
+    }) as string[]; // Cast response to string array based on schema
+  
+    // --- Fetch image from Replicate URL and upload to Fal ---
+    if (!Array.isArray(response) || response.length === 0 || typeof response[0] !== 'string') {
+      console.error('Invalid response from Replicate:', response);
+      throw new Error('Invalid or empty response from Replicate model');
+    }
+
+    const replicateOutputUrl = response[0];
+    console.log(`Generated image URL from Replicate: ${replicateOutputUrl}`);
+
+    // Fetch the image data from the Replicate URL
+    const imageResponse = await axios.get(replicateOutputUrl, {
+      responseType: 'arraybuffer' // Get data as ArrayBuffer
+    });
+
+    if (imageResponse.status !== 200 || !imageResponse.data) {
+        throw new Error(`Failed to fetch image from Replicate URL: ${imageResponse.statusText}`);
+    }
+
+    const imageBuffer = Buffer.from(imageResponse.data);
+    // Infer mime type or default (Replicate often uses jpg/png)
+    const mimeType = imageResponse.headers['content-type'] || 'image/jpeg'; 
+    const fileName = `ghibli_${Date.now()}.jpg`; // Create a dynamic filename
+
+    // Create a File object
+    // const imageFile = new File([imageBuffer], fileName, { type: mimeType });
+    // Convert buffer to base64
+    const base64Image = `data:image/jpg;base64,${imageBuffer.toString('base64')}`;
+
+    // Upload the File object to Fal storage
+    const outputImageUrl = await uploadImageToFal(base64Image);
+    // ------------------------------------------------------
+
+    return outputImageUrl;
+  } catch (error) {
+    console.error('Error generating Ghibli image via Replicate:', error);
+    // More specific error message
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', error.response?.data);
+    }
+    throw new Error('Failed to generate Ghibli image using Replicate');
+  }
+}
+
+// --- Placeholder for Pixar style generation ---
+async function generateWithPixarModel(imageUrl: string): Promise<string> {
+  console.log(`Generating Pixar style for: ${imageUrl}`);
+  // Replace with actual API call to a Pixar-style model
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+  // For now, return the original URL or a placeholder/error
+  // throw new Error('Pixar model not implemented yet');
+  return 'https://placehold.co/600x400/DCECEB/2A4C4D.png?text=Pixar+Style\n(Not+Implemented)';
+}
+
+// --- Main service function to select model based on variant ---
+export async function generateImageWithVariant(
+  imageUrl: string,
+  variant: ImageVariant,
+  inputFile?: File,
+): Promise<string> {
+  console.log(`Generating image with variant: ${variant}`);
+  switch (variant) {
+    case 'toon':
+      return await generateWithFalCartoonify(imageUrl);
+    case 'ghiblix':
+      return await generateWithGhiblixModel(imageUrl);
+    default:
+      // Fallback or error - though the route handler should prevent invalid variants
+      console.warn(`Unknown variant received in service: ${variant}. Falling back to cartoon.`);
+      return await generateWithFalCartoonify(imageUrl);
   }
 } 

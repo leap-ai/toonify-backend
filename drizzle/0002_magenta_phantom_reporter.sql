@@ -1,0 +1,1 @@
+ALTER TABLE "generations" ADD COLUMN "variant" text DEFAULT 'cartoon' NOT NULL;
