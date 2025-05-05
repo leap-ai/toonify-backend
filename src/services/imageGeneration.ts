@@ -139,17 +139,24 @@ async function generateWithReplicateModel(imageUrl: string, replicateVariant: "g
     const { model: { creator, name, id } } = ReplicateModels[replicateVariant];
 
     const model = `${creator}/${name}:${id}` as `${string}/${string}:${string}`;
-  
-    const [output] = await replicate.run(model, {
-      input,
-    }) as any[];
+    let output: any;
+
+    if (replicateVariant === "comic") {
+      [output] = await replicate.run(model, {
+        input,
+      }) as any;
+    } else {
+      output = await replicate.run(model, {
+        input,
+      }) as any;
+    }
 
     if (!output || typeof output.blob !== 'function') {
-      console.error('Unexpected response format from Replicate. Expected FileOutput object:', output);
+      console.error('Unexpected response format from Replicate. Expected object with .blob method:', output);
       throw new Error('Unexpected response format from Replicate model');
     }
 
-    console.log('Received FileOutput object from Replicate. Getting blob...');
+    console.log('Received output object from Replicate. Getting blob...');
     const imageBlob: Blob = await output.blob(); // Await the blob promise
 
     if (!imageBlob) {
@@ -160,7 +167,7 @@ async function generateWithReplicateModel(imageUrl: string, replicateVariant: "g
 
     // Create a filename (use blob type extension or default)
     const fileExtension = imageBlob.type.split('/')[1] || 'webp';
-    const fileName = `ghibli_${Date.now()}.${fileExtension}`;
+    const fileName = `${replicateVariant}_${Date.now()}.${fileExtension}`;
 
     // Create a File object from the Blob
     const imageFile = new File([imageBlob], fileName, { type: imageBlob.type });
