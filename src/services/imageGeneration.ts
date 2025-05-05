@@ -1,14 +1,15 @@
 import axios from 'axios';
 import { fal } from "@fal-ai/client";
-import replicate from 'replicate';
+import Replicate from 'replicate';
 import { config } from '../config';
+import { Readable } from 'stream';
 
 // Initialize fal.ai client with API key
 fal.config({
   credentials: config.fal.key,
 });
 
-const replicateService = new replicate({
+const replicate = new Replicate({
   auth: config.replicate.token,
 });
 
@@ -88,43 +89,69 @@ async function generateWithGhiblixModel(imageUrl: string): Promise<string> {
       num_inference_steps: 38
     };
   
-    const response = await replicateService.run("aaronaftab/mirage-ghibli:166efd159b4138da932522bc5af40d39194033f587d9bdbab1e594119eae3e7f", {
+    const [output] = await replicate.run("aaronaftab/mirage-ghibli:166efd159b4138da932522bc5af40d39194033f587d9bdbab1e594119eae3e7f", {
       input,
-    }) as string[]; // Cast response to string array based on schema
+    }) as any[];
+
+    console.log("URL", output.url());
+    console.log("BLOB", output.blob());
+
+    const response = output.url()
   
-    // --- Fetch image from Replicate URL and upload to Fal ---
-    if (!Array.isArray(response) || response.length === 0 || typeof response[0] !== 'string') {
-      console.error('Invalid response from Replicate:', response);
-      throw new Error('Invalid or empty response from Replicate model');
+    // --- Read stream if necessary, get URL, fetch image, upload to Fal ---
+    if (!Array.isArray(response) || response.length === 0) {
+      console.error('Unexpected empty response from Replicate:', response);
+      throw new Error('Empty response from Replicate model');
     }
 
-    const replicateOutputUrl = response[0];
+    let replicateOutputUrl: string;
+
+    // Check if the output is a stream
+    if (response[0] instanceof Readable) {
+      console.log('Replicate output is a stream, reading content...');
+      const stream = response[0] as Readable;
+      let data = '';
+      for await (const chunk of stream) {
+        data += chunk;
+      }
+      replicateOutputUrl = data.trim(); // Assign the stream content to the URL
+      if (!replicateOutputUrl) {
+        throw new Error('Empty stream received from Replicate model');
+      }
+    } else if (typeof response[0] === 'string') {
+      // Handle case where it might sometimes return a string directly
+      replicateOutputUrl = response[0];
+    } else {
+      console.error('Unexpected response type from Replicate:', typeof response[0], response[0]);
+      throw new Error('Unexpected response type from Replicate model');
+    }
+
     console.log(`Generated image URL from Replicate: ${replicateOutputUrl}`);
 
     // Fetch the image data from the Replicate URL
-    const imageResponse = await axios.get(replicateOutputUrl, {
-      responseType: 'arraybuffer' // Get data as ArrayBuffer
-    });
+    // const imageResponse = await axios.get(replicateOutputUrl, {
+    //   responseType: 'arraybuffer' // Get data as ArrayBuffer
+    // });
 
-    if (imageResponse.status !== 200 || !imageResponse.data) {
-        throw new Error(`Failed to fetch image from Replicate URL: ${imageResponse.statusText}`);
-    }
+    // if (imageResponse.status !== 200 || !imageResponse.data) {
+    //     throw new Error(`Failed to fetch image from Replicate URL: ${imageResponse.statusText}`);
+    // }
 
-    const imageBuffer = Buffer.from(imageResponse.data);
-    // Infer mime type or default (Replicate often uses jpg/png)
-    const mimeType = imageResponse.headers['content-type'] || 'image/jpeg'; 
-    const fileName = `ghibli_${Date.now()}.jpg`; // Create a dynamic filename
+    // const imageBuffer = Buffer.from(imageResponse.data);
+    // // Infer mime type or default (Replicate often uses jpg/png)
+    // const mimeType = imageResponse.headers['content-type'] || 'image/jpeg'; 
+    // const fileName = `ghibli_${Date.now()}.jpg`; // Create a dynamic filename
 
-    // Create a File object
-    // const imageFile = new File([imageBuffer], fileName, { type: mimeType });
-    // Convert buffer to base64
-    const base64Image = `data:image/jpg;base64,${imageBuffer.toString('base64')}`;
+    // // Create a File object
+    // // const imageFile = new File([imageBuffer], fileName, { type: mimeType });
+    // // Convert buffer to base64
+    // const base64Image = `data:image/jpg;base64,${imageBuffer.toString('base64')}`;
 
-    // Upload the File object to Fal storage
-    const outputImageUrl = await uploadImageToFal(base64Image);
+    // // Upload the File object to Fal storage
+    // const outputImageUrl = await uploadImageToFal(base64Image);
     // ------------------------------------------------------
 
-    return outputImageUrl;
+    return replicateOutputUrl;
   } catch (error) {
     console.error('Error generating Ghibli image via Replicate:', error);
     // More specific error message
