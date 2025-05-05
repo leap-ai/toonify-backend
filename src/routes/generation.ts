@@ -22,7 +22,7 @@ const upload = multer({
 });
 
 // Define allowed variants - sync with ImageVariant in service
-const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix', 'anime'];
+const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix', 'sticker'];
 
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
@@ -73,9 +73,6 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
 
     // Convert original buffer to base64 data URL *only* if needed for HF
     let base64Image: string | undefined = undefined;
-    if (selectedVariant === 'anime') {
-        base64Image = `data:${inputFile.type};base64,${file.buffer.toString('base64')}`;
-    }
 
     // Generate cartoon image using the new service function with variant
     // Pass the uploaded URL and optional base64 string
