@@ -3,6 +3,7 @@ import { fal } from "@fal-ai/client";
 import Replicate from 'replicate';
 import { config } from '../config';
 import { Readable } from 'stream';
+import { generateStylizedImage } from './HuggingFaceInference';
 
 // Initialize fal.ai client with API key
 fal.config({
@@ -22,7 +23,7 @@ interface GenerationResult {
 }
 
 // --- Define allowed image variants ---
-export type ImageVariant = 'toon' | 'ghiblix';
+export type ImageVariant = 'toon' | 'ghiblix' | 'anime';
 // ------------------------------------
 
 // Function to upload image to fal.ai storage
@@ -138,31 +139,67 @@ async function generateWithGhiblixModel(imageUrl: string): Promise<string> {
   }
 }
 
-// --- Placeholder for Pixar style generation ---
-async function generateWithPixarModel(imageUrl: string): Promise<string> {
-  console.log(`Generating Pixar style for: ${imageUrl}`);
-  // Replace with actual API call to a Pixar-style model
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-  // For now, return the original URL or a placeholder/error
-  // throw new Error('Pixar model not implemented yet');
-  return 'https://placehold.co/600x400/DCECEB/2A4C4D.png?text=Pixar+Style\n(Not+Implemented)';
+// Updated signature to accept base64 string
+async function generateWithAnimeModel(base64Image: string): Promise<string> {
+  console.log(`Generating Anime style using Hugging Face for input base64 image.`);
+  try {
+    // Call the HF inference function - WILL NEED UPDATE in HF file to handle string
+    const outputBuffer: Buffer = await generateStylizedImage(base64Image, 'anime'); 
+
+    if (!outputBuffer || outputBuffer.length === 0) {
+      throw new Error('Received empty buffer from Hugging Face model');
+    }
+
+    console.log(`Buffer received from Hugging Face, size: ${outputBuffer.length}`);
+
+    // --- Convert buffer to File and upload to Fal ---
+    // Determine MIME type (HF model likely outputs png or jpg, default to png)
+    // Ideally, the HF function would return type info, but let's assume png
+    const mimeType = 'image/png'; 
+    const fileExtension = 'png';
+    const fileName = `anime_${Date.now()}.${fileExtension}`;
+
+    // Create a File object from the Buffer
+    const imageFile = new File([outputBuffer], fileName, { type: mimeType });
+
+    // Upload the File object to Fal storage
+    console.log('Uploading HF-generated file to Fal storage...');
+    const outputImageUrl = await uploadImageToFal(imageFile);
+    console.log('File uploaded to Fal:', outputImageUrl);
+    // -----------------------------------------------------
+
+    return outputImageUrl;
+  } catch (error) {
+     console.error('Error generating Anime image via Hugging Face:', error);
+     // Add more specific error logging if needed
+     throw new Error('Failed to generate Anime image using Hugging Face');
+  }
 }
 
 // --- Main service function to select model based on variant ---
+// Reverted signature
 export async function generateImageWithVariant(
-  imageUrl: string,
+  imageUrl: string,         // URL of uploaded original for most models
   variant: ImageVariant,
-  inputFile?: File,
+  base64Image?: string     // Optional: Original base64 for models needing it (HF)
 ): Promise<string> {
-  console.log(`Generating image with variant: ${variant}`);
+  console.log(`Generating image with variant: ${variant} using URL: ${imageUrl}`);
   switch (variant) {
     case 'toon':
+      // Fal cartoonify needs the URL
       return await generateWithFalCartoonify(imageUrl);
     case 'ghiblix':
+      // Replicate Ghibli needs the URL
       return await generateWithGhiblixModel(imageUrl);
+    case 'anime':
+      // Hugging Face needs the base64 string
+      if (!base64Image) {
+        throw new Error('Base64 image string is required for anime variant but was not provided.');
+      }
+      return await generateWithAnimeModel(base64Image);
     default:
-      // Fallback or error - though the route handler should prevent invalid variants
-      console.warn(`Unknown variant received in service: ${variant}. Falling back to cartoon.`);
+      // Fallback or error
+      console.warn(`Unknown variant received in service: ${variant}. Falling back to toon.`);
       return await generateWithFalCartoonify(imageUrl);
   }
 } 

@@ -22,7 +22,7 @@ const upload = multer({
 });
 
 // Define allowed variants - sync with ImageVariant in service
-const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix'];
+const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix', 'anime'];
 
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
@@ -64,15 +64,22 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
       return res.status(400).json({ error: 'Invalid file data' });
     }
 
-    // Convert buffer to base64
-    const base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    // Create a standard File object from the Multer file buffer
+    const inputFile = new File([file.buffer], file.originalname, { type: file.mimetype });
 
-    // Upload image to fal.ai storage
-    const falImageUrl = await uploadImageToFal(base64Image);
+    // Upload image to fal.ai storage - needs the created File object
+    const falImageUrl = await uploadImageToFal(inputFile); 
     console.log('Image uploaded to fal.ai:', falImageUrl);
 
+    // Convert original buffer to base64 data URL *only* if needed for HF
+    let base64Image: string | undefined = undefined;
+    if (selectedVariant === 'anime') {
+        base64Image = `data:${inputFile.type};base64,${file.buffer.toString('base64')}`;
+    }
+
     // Generate cartoon image using the new service function with variant
-    const generatedImageUrl = await generateImageWithVariant(falImageUrl, selectedVariant);
+    // Pass the uploaded URL and optional base64 string
+    const generatedImageUrl = await generateImageWithVariant(falImageUrl, selectedVariant, base64Image);
     console.log(`Image generated with variant ${selectedVariant}:`, generatedImageUrl);
 
     // Save generation to database

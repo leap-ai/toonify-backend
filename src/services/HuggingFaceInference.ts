@@ -18,25 +18,55 @@ const STYLE_MODEL_MAP = {
 type StyleVariant = keyof typeof STYLE_MODEL_MAP;
 
 /**
- * @param {Buffer | string} imageBuffer - base64 string or file buffer
- * @param {"anime" | "cartoon" | "ghibli"} style
+ * @param {File | string} imageInput - File object or base64 string
+ * @param {StyleVariant} style
  * @returns {Promise<Buffer>} - stylized image buffer
  */
-async function generateStylizedImage(imageBuffer: File, style: StyleVariant = "anime"): Promise<Buffer> {
+async function generateStylizedImage(imageInput: File | string, style: StyleVariant = "anime"): Promise<Buffer> {
   const model = STYLE_MODEL_MAP[style];
   if (!model) throw new Error("Unsupported style: " + style);
 
-  // Convert base64 to buffer if needed
-  const buffer = typeof imageBuffer === "string" ? Buffer.from(imageBuffer, "base64") : imageBuffer;
+  let buffer: Buffer;
+  let contentType: string = 'image/png'; // Default content type
+
+  // Handle File input
+  if (imageInput instanceof File) {
+    contentType = imageInput.type; // Use file's actual type
+    const arrayBuffer = await imageInput.arrayBuffer();
+    buffer = Buffer.from(arrayBuffer);
+  } 
+  // Handle base64 string input
+  else if (typeof imageInput === 'string') {
+    // Assume data URL format like data:image/png;base64,...
+    const match = imageInput.match(/^data:(image\/\w+);base64,/);
+    if (match) {
+      contentType = match[1]; // Extract content type from data URL
+      const base64Data = imageInput.split(',')[1];
+      buffer = Buffer.from(base64Data, "base64");
+    } else {
+       // Assume raw base64 string without prefix
+       buffer = Buffer.from(imageInput, "base64");
+       // Keep default contentType or try to infer if needed, though HF might handle raw buffer okay
+    }
+  } 
+  else {
+    throw new Error("Invalid input type for generateStylizedImage. Expected File or base64 string.");
+  }
+
+  if (!buffer || buffer.length === 0) {
+     throw new Error("Failed to create buffer from input image.");
+  }
 
   try {
+    console.log(`Calling HF model ${model} with content type ${contentType}`);
     const response = await axios.post(
       `https://api-inference.huggingface.co/models/${model}`,
-      buffer,
+      buffer, // Send the raw buffer
       {
         headers: {
           Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
-          "Content-Type": "image/png"
+          // Send the determined Content-Type
+          "Content-Type": contentType 
         },
         responseType: "arraybuffer"
       }
