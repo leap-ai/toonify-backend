@@ -142,13 +142,13 @@ async function generateWithReplicateModel(imageUrl: string, replicateVariant: "g
     let output: any;
 
     if (replicateVariant === "comic") {
-      [output] = await replicate.run(model, {
-        input,
-      }) as any;
-    } else {
       output = await replicate.run(model, {
         input,
       }) as any;
+    } else {
+      [output] = await replicate.run(model, {
+        input,
+      }) as any[];
     }
 
     if (!output || typeof output.blob !== 'function') {
