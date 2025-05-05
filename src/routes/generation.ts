@@ -22,7 +22,7 @@ const upload = multer({
 });
 
 // Define allowed variants - sync with ImageVariant in service
-const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix', 'sticker'];
+const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix', 'sticker', 'comic'];
 
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
