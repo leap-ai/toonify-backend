@@ -45,7 +45,7 @@ interface FalImageOutput {
   height: number;
 }
 
-interface GenerationResult {
+interface FalCartoonifyGenerationResult {
   images: {
     url: string;
     content_type: string;
@@ -53,10 +53,14 @@ interface GenerationResult {
   prompt: string;
 }
 
+interface FalGhiblifyGenerationResult {
+  image_url: string;
+}
+
 // To generate cartoon image from fal.ai URL using the cartoonify model
 async function generateWithFalCartoonify(imageUrl: string): Promise<string> {
   try {
-    const response = await axios.post<GenerationResult>(
+    const response = await axios.post<FalCartoonifyGenerationResult>(
       'https://fal.run/fal-ai/cartoonify',
       {
         image_url: imageUrl,
@@ -82,7 +86,7 @@ async function generateWithFalCartoonify(imageUrl: string): Promise<string> {
 
 async function generateWithFalGhiblify(imageUrl: string): Promise<string> {
   try {
-    const response = await axios.post<GenerationResult>(
+    const response = await axios.post<FalGhiblifyGenerationResult>(
       'https://fal.run/fal-ai/ghiblify',
       {
         image_url: imageUrl,
@@ -95,13 +99,11 @@ async function generateWithFalGhiblify(imageUrl: string): Promise<string> {
       }
     );
 
-    console.log("Response", response);
-
-    if (!response.data.images?.[0]?.url) {
+    if (!response.data.image_url) {
       throw new Error('No image URL in response');
     }
 
-    return response.data.images[0].url;
+    return response.data.image_url;
   } catch (error) {
     console.error('Error generating ghibli image:', error);
     throw new Error('Failed to generate ghibli image');
