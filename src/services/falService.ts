@@ -95,6 +95,8 @@ async function generateWithFalGhiblify(imageUrl: string): Promise<string> {
       }
     );
 
+    console.log("Response", response);
+
     if (!response.data.images?.[0]?.url) {
       throw new Error('No image URL in response');
     }
