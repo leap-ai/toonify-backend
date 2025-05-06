@@ -45,7 +45,7 @@ interface FalImageOutput {
   height: number;
 }
 
-interface FalCartoonifyGenerationResult {
+interface FalImagesGenerationResult {
   images: {
     url: string;
     content_type: string;
@@ -53,7 +53,7 @@ interface FalCartoonifyGenerationResult {
   prompt: string;
 }
 
-interface FalGhiblifyGenerationResult {
+interface FalImageGenerationResult {
   image: {
     url: string;
     content_type: string;
@@ -63,7 +63,7 @@ interface FalGhiblifyGenerationResult {
 // To generate cartoon image from fal.ai URL using the cartoonify model
 async function generateWithFalCartoonify(imageUrl: string): Promise<string> {
   try {
-    const response = await axios.post<FalCartoonifyGenerationResult>(
+    const response = await axios.post<FalImagesGenerationResult>(
       'https://fal.run/fal-ai/cartoonify',
       {
         image_url: imageUrl,
@@ -82,14 +82,14 @@ async function generateWithFalCartoonify(imageUrl: string): Promise<string> {
 
     return response.data.images[0].url;
   } catch (error) {
-    console.error('Error generating cartoon image:', error);
-    throw new Error('Failed to generate cartoon image');
+    console.error('Error generating Pixar cartoon image:', error);
+    throw new Error('Failed to generate Pixar cartoon image');
   }
 }
 
 async function generateWithFalGhiblify(imageUrl: string): Promise<string> {
   try {
-    const response = await axios.post<FalGhiblifyGenerationResult>(
+    const response = await axios.post<FalImageGenerationResult>(
       'https://fal.run/fal-ai/ghiblify',
       {
         image_url: imageUrl,
@@ -113,8 +113,35 @@ async function generateWithFalGhiblify(imageUrl: string): Promise<string> {
   }
 }
 
+async function generateWithFalPlushify(imageUrl: string): Promise<string> {
+  try {
+    const response = await axios.post<FalImagesGenerationResult>(
+      'https://fal.run/fal-ai/plushify',
+      {
+        image_url: imageUrl,
+      },
+      {
+        headers: {
+          'Authorization': `Key ${config.fal.key}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.data.images?.[0]?.url) {
+      throw new Error('No image URL in response');
+    }
+
+    return response.data.images?.[0]?.url;
+  } catch (error) {
+    console.error('Error generating Plushy image:', error);
+    throw new Error('Failed to generate Plushy image');
+  }
+}
+
 export {
   generateWithFalCartoonify,
   generateWithFalGhiblify,
+  generateWithFalPlushify,
   uploadImageToFal
 };

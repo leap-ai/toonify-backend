@@ -2,7 +2,7 @@ import axios from 'axios';
 import { fal } from "@fal-ai/client";
 import Replicate from 'replicate';
 import { config } from '../config';
-import { uploadImageToFal, generateWithFalCartoonify, generateWithFalGhiblify } from './falService';
+import { uploadImageToFal, generateWithFalCartoonify, generateWithFalGhiblify, generateWithFalPlushify } from './falService';
 
 // Initialize fal.ai client with API key
 fal.config({
@@ -70,10 +70,10 @@ const ReplicateModels = {
  * Replicate fofr/face-to-sticker - Sticker style $0.026 per image
  * Replicate Catacolabs/Cartoonify - Comic style $0.0055 per image
  */
-export type ImageVariant = 'toon' | 'ghiblix' | 'sticker' | 'comic';
+export type ImageVariant = 'pixar' | 'ghiblix' | 'sticker' | 'plushy';
 
 // To generate cartoon image from Replicate using the mirage-ghibli model
-async function generateWithReplicateModel(imageUrl: string, replicateVariant: "ghiblix" | "sticker" | "comic"): Promise<string> {
+async function generateWithReplicateModel(imageUrl: string, replicateVariant: "ghiblix" | "sticker" | "comic" = "sticker"): Promise<string> {
   try {
     console.log(`Generating ${replicateVariant} style for: ${imageUrl}`);
     const input = {
@@ -142,10 +142,10 @@ export async function generateImageWithVariant(
   base64Image?: string     // Optional: Original base64 for models needing it (HF)
 ): Promise<string> {
   switch (variant) {
-    case 'comic':
+    case 'plushy':
       // Replicate comic needs the URL
-      return await generateWithReplicateModel(imageUrl, "comic");
-    case 'toon':
+      return await generateWithFalPlushify(imageUrl);
+    case 'pixar':
       // Fal cartoonify needs the URL
       return await generateWithFalCartoonify(imageUrl);
     case 'ghiblix':

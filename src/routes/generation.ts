@@ -23,7 +23,7 @@ const upload = multer({
 });
 
 // Define allowed variants - sync with ImageVariant in service
-const ALLOWED_VARIANTS: ImageVariant[] = ['toon', 'ghiblix', 'sticker', 'comic'];
+const ALLOWED_VARIANTS: ImageVariant[] = ['pixar', 'ghiblix', 'sticker', 'plushy'];
 
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
@@ -47,7 +47,7 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
       console.warn(`Invalid or missing variant: ${variant}. Defaulting to 'toon'.`);
       // return res.status(400).json({ error: `Invalid or missing variant. Allowed variants: ${ALLOWED_VARIANTS.join(', ')}` });
     }
-    const selectedVariant = ALLOWED_VARIANTS.includes(variant) ? variant : 'toon';
+    const selectedVariant = ALLOWED_VARIANTS.includes(variant) ? variant : 'ghiblix';
     // --------------------------------------
 
     // Check user credits
