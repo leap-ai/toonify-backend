@@ -54,7 +54,10 @@ interface FalCartoonifyGenerationResult {
 }
 
 interface FalGhiblifyGenerationResult {
-  image_url: string;
+  image: {
+    url: string;
+    content_type: string;
+  }
 }
 
 // To generate cartoon image from fal.ai URL using the cartoonify model
@@ -99,11 +102,11 @@ async function generateWithFalGhiblify(imageUrl: string): Promise<string> {
       }
     );
 
-    if (!response.data.image_url) {
+    if (!response.data?.image?.url) {
       throw new Error('No image URL in response');
     }
 
-    return response.data.image_url;
+    return response.data.image.url;
   } catch (error) {
     console.error('Error generating ghibli image:', error);
     throw new Error('Failed to generate ghibli image');
