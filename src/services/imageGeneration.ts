@@ -2,6 +2,7 @@ import axios from 'axios';
 import { fal } from "@fal-ai/client";
 import Replicate from 'replicate';
 import { config } from '../config';
+import { uploadImageToFal, generateWithFalCartoonify, generateWithFalGhiblify } from './falService';
 
 // Initialize fal.ai client with API key
 fal.config({
@@ -59,73 +60,17 @@ const ReplicateModels = {
   }
 }
 
-interface GenerationResult {
-  images: {
-    url: string;
-    content_type: string;
-  }[];
-  prompt: string;
-}
-
 // --- Define allowed image variants ---
+/**
+ * The variants of images that can be generated
+ * Fal.AI Cartoonify - Pixar style 0.1$ per image
+ * Fal.AI Plushify - Plush style 0.1$ per image
+ * Fal.AI Ghiblify - Studio Ghibli style 0.05$ per image
+ * Replicate Mirage Ghibli - Studio Ghibli style $0.018 per image
+ * Replicate fofr/face-to-sticker - Sticker style $0.026 per image
+ * Replicate Catacolabs/Cartoonify - Comic style $0.0055 per image
+ */
 export type ImageVariant = 'toon' | 'ghiblix' | 'sticker' | 'comic';
-
-// Function to upload image to fal.ai storage
-export async function uploadImageToFal(base64Image: string | File): Promise<string> {
-  let falImageUrl: string;
-  try {
-    if (base64Image instanceof File) {
-      // Upload the File object directly to Fal storage
-      falImageUrl = await fal.storage.upload(base64Image);
-    } else {
-      // Extract the base64 data from the data URL
-      const base64Data = base64Image.split(',')[1];
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      // Create a File object
-      const file = new File([buffer], 'upload.jpg', { type: 'image/jpeg' });
-
-      // Upload to Fal.ai storage
-      falImageUrl = await fal.storage.upload(file);
-    }
-
-    if (!falImageUrl) {
-      throw new Error('No URL in response from fal.ai storage');
-    }
-
-    return falImageUrl;
-  } catch (error) {
-    console.error('Error uploading image to fal.ai:', error);
-    throw new Error('Failed to upload image to fal.ai storage');
-  }
-}
-
-// To generate cartoon image from fal.ai URL using the cartoonify model
-async function generateWithFalCartoonify(imageUrl: string): Promise<string> {
-  try {
-    const response = await axios.post<GenerationResult>(
-      'https://fal.run/fal-ai/cartoonify',
-      {
-        image_url: imageUrl,
-      },
-      {
-        headers: {
-          'Authorization': `Key ${config.fal.key}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!response.data.images?.[0]?.url) {
-      throw new Error('No image URL in response');
-    }
-
-    return response.data.images[0].url;
-  } catch (error) {
-    console.error('Error generating cartoon image:', error);
-    throw new Error('Failed to generate cartoon image');
-  }
-}
 
 // To generate cartoon image from Replicate using the mirage-ghibli model
 async function generateWithReplicateModel(imageUrl: string, replicateVariant: "ghiblix" | "sticker" | "comic"): Promise<string> {
@@ -205,7 +150,7 @@ export async function generateImageWithVariant(
       return await generateWithFalCartoonify(imageUrl);
     case 'ghiblix':
       // Replicate Ghibli needs the URL
-      return await generateWithReplicateModel(imageUrl, "ghiblix");
+      return await generateWithFalGhiblify(imageUrl);
     case 'sticker':
       // Replicate Sticker needs the URL
       return await generateWithReplicateModel(imageUrl, "sticker");

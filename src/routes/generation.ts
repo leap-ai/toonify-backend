@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { generateImageWithVariant, uploadImageToFal, ImageVariant } from '../services/imageGeneration';
-import { db } from '../db';
-import { generations, user } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import multer from 'multer';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
+import { db } from '../db';
+import { generations, user } from '../db/schema';
+import { uploadImageToFal } from '../services/falService';
+import { generateImageWithVariant, ImageVariant } from '../services/imageGeneration';
 
 const router = Router();
 const upload = multer({
