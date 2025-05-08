@@ -14,6 +14,7 @@ export const user = pgTable('user', {
   isProMember: boolean('is_pro_member').notNull().default(false),
   proMembershipExpiresAt: timestamp('pro_membership_expires_at'),
   subscriptionInGracePeriod: boolean('subscription_in_grace_period').default(false),
+  activeProductId: text('active_product_id'),
 });
 
 export const session = pgTable('session', {

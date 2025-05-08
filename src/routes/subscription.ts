@@ -32,6 +32,7 @@ const getProStatus: express.RequestHandler = async (req, res, next) => {
 				isProMember: true,
 				proMembershipExpiresAt: true,
 				subscriptionInGracePeriod: true,
+				activeProductId: true,
 			}
 		});
 

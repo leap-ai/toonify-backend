@@ -182,6 +182,7 @@ router.post(
             let newIsProMember: boolean | undefined = undefined;
             let newProMembershipExpiresAt: Date | null | undefined = undefined;
             let newSubscriptionInGracePeriod: boolean | undefined = undefined;
+            let newActiveProductId: string | null | undefined = undefined;
 
             if (eventType === 'EXPIRATION') {
                 // Handle subscription expiration
@@ -189,11 +190,13 @@ router.post(
                 newIsProMember = false;
                 newProMembershipExpiresAt = null;
                 newSubscriptionInGracePeriod = false;
+                newActiveProductId = null;
             } else if (eventType === 'UNCANCELLATION') {
                 // Handle subscription un-cancellation
                 console.log(`Processing un-cancellation for user: ${correctAppUserId}, product: ${productId}`);
                 newIsProMember = true; // User is opting back into an active subscription
                 newSubscriptionInGracePeriod = false;
+                newActiveProductId = productId;
                 // proMembershipExpiresAt typically remains from before cancellation for the current period.
                 // If RevenueCat provides a new expiration in the event, we might need to parse it.
                 // For now, assuming existing expiration holds until next renewal cycle or if event provides new one.
@@ -212,6 +215,7 @@ router.post(
                     // we might just be acknowledging the change. Let's set expiration based on current event for now.
                     newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
                     newSubscriptionInGracePeriod = false;
+                    newActiveProductId = productId;
                     // CRUCIAL: Do not set creditsToUpdate here if this PRODUCT_CHANGE refers to the old plan.
                     // Credits are granted by the INITIAL_PURCHASE or RENEWAL event for the new (upgraded) plan.
                 } else if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL') {
@@ -221,6 +225,7 @@ router.post(
                     const eventDate = new Date(eventTimestampMs);
                     newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
                     newSubscriptionInGracePeriod = false;
+                    newActiveProductId = productId;
                 } else {
                     // Fallback for any other relevant type that has a plan but isn't explicitly handled above
                     console.warn(`Generic subscription processing for eventType: ${eventType}, product: ${productId} (user: ${correctAppUserId})`);
@@ -229,6 +234,7 @@ router.post(
                     const eventDate = new Date(eventTimestampMs);
                     newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
                     newSubscriptionInGracePeriod = false;
+                    newActiveProductId = productId;
                 }
             } else {
                 // No subscriptionPlan found for the productId for INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE etc.
@@ -261,9 +267,10 @@ router.post(
             
             // Prepare user update fields
             // Explicitly type updateData to allow SQL for creditsBalance and include subscriptionInGracePeriod
-            const updateData: Partial<Omit<typeof user.$inferInsert, 'creditsBalance' | 'subscriptionInGracePeriod'>> & { 
+            const updateData: Partial<Omit<typeof user.$inferInsert, 'creditsBalance' | 'subscriptionInGracePeriod' | 'activeProductId'>> & { 
                 creditsBalance?: number | SQL; 
                 subscriptionInGracePeriod?: boolean;
+                activeProductId?: string | null;
             } = {};
 
             if (creditsToUpdate !== undefined) {
@@ -277,6 +284,9 @@ router.post(
             }
             if (newSubscriptionInGracePeriod !== undefined) {
                 updateData.subscriptionInGracePeriod = newSubscriptionInGracePeriod;
+            }
+            if (newActiveProductId !== undefined) {
+                updateData.activeProductId = newActiveProductId;
             }
             updateData.updatedAt = new Date();
 
