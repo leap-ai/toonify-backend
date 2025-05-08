@@ -192,20 +192,51 @@ router.post(
             } else if (eventType === 'UNCANCELLATION') {
                 // Handle subscription un-cancellation
                 console.log(`Processing un-cancellation for user: ${correctAppUserId}, product: ${productId}`);
-                newIsProMember = true;
+                newIsProMember = true; // User is opting back into an active subscription
                 newSubscriptionInGracePeriod = false;
-            } else if (subscriptionPlan) {
-                // It's a subscription product (INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE)
-                console.log(`Processing subscription product: ${productId}`);
-                creditsToUpdate = subscriptionPlan.creditsGranted;
-                newIsProMember = true;
-                const eventDate = new Date(eventTimestampMs);
-                newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
-                newSubscriptionInGracePeriod = false;
+                // proMembershipExpiresAt typically remains from before cancellation for the current period.
+                // If RevenueCat provides a new expiration in the event, we might need to parse it.
+                // For now, assuming existing expiration holds until next renewal cycle or if event provides new one.
+                const existingUser = await db.query.user.findFirst({ where: eq(user.id, correctAppUserId), columns: { proMembershipExpiresAt: true } });
+                if (existingUser?.proMembershipExpiresAt) {
+                    newProMembershipExpiresAt = existingUser.proMembershipExpiresAt;
+                }
+
+            } else if (subscriptionPlan) { // This covers INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE if a plan is found
+                if (eventType === 'PRODUCT_CHANGE') {
+                    console.log(`Processing PRODUCT_CHANGE for product: ${productId} (user: ${correctAppUserId})`);
+                    newIsProMember = true;
+                    const eventDate = new Date(eventTimestampMs);
+                    // The new expiration date will typically be part of the event for the new plan that follows.
+                    // For the PRODUCT_CHANGE event itself, if it refers to the old plan, 
+                    // we might just be acknowledging the change. Let's set expiration based on current event for now.
+                    newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+                    newSubscriptionInGracePeriod = false;
+                    // CRUCIAL: Do not set creditsToUpdate here if this PRODUCT_CHANGE refers to the old plan.
+                    // Credits are granted by the INITIAL_PURCHASE or RENEWAL event for the new (upgraded) plan.
+                } else if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL') {
+                    console.log(`Processing ${eventType} for product: ${productId} (user: ${correctAppUserId})`);
+                    creditsToUpdate = subscriptionPlan.creditsGranted;
+                    newIsProMember = true;
+                    const eventDate = new Date(eventTimestampMs);
+                    newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+                    newSubscriptionInGracePeriod = false;
+                } else {
+                    // Fallback for any other relevant type that has a plan but isn't explicitly handled above
+                    console.warn(`Generic subscription processing for eventType: ${eventType}, product: ${productId} (user: ${correctAppUserId})`);
+                    creditsToUpdate = subscriptionPlan.creditsGranted;
+                    newIsProMember = true;
+                    const eventDate = new Date(eventTimestampMs);
+                    newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+                    newSubscriptionInGracePeriod = false;
+                }
             } else {
-                console.warn(`Unknown product ID or unhandled event type for product: ${productId}, eventType: ${eventType}`);
-                res.status(200).send('Event processed (unknown product or unhandled event/product combo).');
-                return;
+                // No subscriptionPlan found for the productId for INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE etc.
+                // EXPIRATION and UNCANCELLATION are handled above and don't strictly need a plan here.
+                if (eventType !== 'EXPIRATION' && eventType !== 'UNCANCELLATION') {
+                    console.warn(`No subscription plan found for product ID: ${productId} (event type: ${eventType}, user: ${correctAppUserId}). Cannot process standard subscription updates.`);
+                    // This will likely fall through to the "No action defined" check below.
+                }
             }
 
             // For CANCELLATION events with UNSUBSCRIBE reason, we don't update user record here.
@@ -221,9 +252,10 @@ router.post(
                 return; // Skip user/payment update for this specific scenario
             }
 
-            if (creditsToUpdate === undefined && newIsProMember === undefined && eventType !== 'EXPIRATION') {
-                console.log(`No action defined for product ID: ${productId} and event type: ${eventType}`);
-                res.status(200).send('Event processed (no action defined).');
+            // Adjusted "No action defined" check to account for events that modify pro status without credits
+            if (creditsToUpdate === undefined && newIsProMember === undefined && !(eventType === 'EXPIRATION')) {
+                console.log(`No definitive action (credits or pro status change) for product ID: ${productId}, event type: ${eventType}, user: ${correctAppUserId}. This could be an unknown product or an event like CANCELLATION that is handled by returning earlier.`);
+                res.status(200).send('Event processed (no definitive user update action taken).');
                 return;
             }
             
@@ -268,19 +300,25 @@ router.post(
                 } else {
                   console.log(`User ${updatedUsers[0].id} updated. Credits: ${updatedUsers[0].newCredits}, IsPro: ${updatedUsers[0].isPro}, ProExpires: ${updatedUsers[0].proExpires}`);
               
-                  // Log Successful Payment/Subscription event
-                  await db.insert(payments).values({
-                    id: crypto.randomUUID(), // This should be unique for the payment record
-                    userId: correctAppUserId,
-                    amount: paidAmount || 0, // Ensure amount is a number
-                    currency: currency || 'USD',
-                    status: 'Success',
-                    transactionId: eventId, // Using eventId as the primary reference to the webhook event
-                    storeTransactionId: storeTransactionId || transactionId, // store's transaction ID
-                    productId: productId,
-                    createdAt: new Date(eventTimestampMs), // Use event timestamp
-                  });
-                  console.log(`Payment/Subscription logged for event ID: ${eventId}`);
+                  // Log "Success" only for actual new purchases or renewals that result in a user update.
+                  // PRODUCT_CHANGE itself does not log a new payment here; the subsequent event for the new plan does.
+                  // BILLING_ISSUE logs its own type. EXPIRATION, UNCANCELLATION, CANCELLATION don't log new "Success" payments.
+                  if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL') {
+                    await db.insert(payments).values({
+                        id: crypto.randomUUID(), // This should be unique for the payment record
+                        userId: correctAppUserId,
+                        amount: paidAmount || 0, // Ensure amount is a number
+                        currency: currency || 'USD',
+                        status: 'Success',
+                        transactionId: eventId, // Using eventId as the primary reference to the webhook event
+                        storeTransactionId: storeTransactionId || transactionId, // store's transaction ID
+                        productId: productId,
+                        createdAt: new Date(eventTimestampMs), // Use event timestamp
+                    });
+                    console.log(`Payment/Subscription 'Success' logged for ${eventType}, event ID: ${eventId}`);
+                  } else {
+                    console.log(`No new 'Success' payment record logged for this event type (${eventType}), event ID: ${eventId}.`);
+                  }
                 }
             }
 
