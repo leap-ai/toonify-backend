@@ -13,6 +13,7 @@ export const user = pgTable('user', {
   creditsBalance: integer('credits_balance').notNull().default(5),
   isProMember: boolean('is_pro_member').notNull().default(false),
   proMembershipExpiresAt: timestamp('pro_membership_expires_at'),
+  subscriptionInGracePeriod: boolean('subscription_in_grace_period').default(false),
 });
 
 export const session = pgTable('session', {
