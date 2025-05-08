@@ -29,6 +29,13 @@
       "when": 1746708270734,
       "tag": "0003_secret_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1746717660897,
+      "tag": "0004_square_typhoid_mary",
+      "breakpoints": true
     }
   ]
 }
