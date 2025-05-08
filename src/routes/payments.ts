@@ -127,32 +127,32 @@ router.post(
             // Potentially fallback to transactionId if event.id is not always present,
             // but event.id is preferred for webhook idempotency.
             res.status(400).send('Missing event.id for idempotency.');
-            return;
+          return;
         }
 
         try {
-            const existingPayment = await db.select({ id: payments.id })
-                .from(payments)
+          const existingPayment = await db.select({ id: payments.id })
+            .from(payments)
                 // Use event.id for idempotency key if it's unique per delivery attempt of an event.
                 // If transaction_id is more suitable for business logic idempotency (e.g. only one purchase per transaction_id)
                 // then that's fine, but webhook delivery retries should ideally use event.id.
                 // For now, assuming event.id is the unique webhook event identifier.
                 .where(eq(payments.transactionId, eventId)) // Using eventId as transactionId for this log
-                .limit(1);
+            .limit(1);
 
-            if (existingPayment.length > 0) {
+          if (existingPayment.length > 0) {
                 console.log(`Duplicate webhook event ID detected: ${eventId}. Already processed.`);
                 res.status(200).send('Event processed (duplicate event ID).');
-                return;
-            }
-
+            return;
+          }
+          
             // Handle BILLING_ISSUE separately as it has a specific update and logging path
             if (eventType === 'BILLING_ISSUE') {
                 console.warn(`Billing issue for user ${correctAppUserId}, product ${productId}. Payment may be retrying.`);
 
                 // Update user to set subscriptionInGracePeriod = true
                 await db.update(user)
-                    .set({
+            .set({ 
                       subscriptionInGracePeriod: true,
                       updatedAt: new Date(),
                     })
@@ -320,12 +320,12 @@ router.post(
                     console.log(`No new 'Success' payment record logged for this event type (${eventType}), event ID: ${eventId}.`);
                   }
                 }
-            }
+          }
 
         } catch (dbError) {
             console.error(`Database error processing webhook for event ID ${eventId}:`, dbError);
-            res.status(500).send('Database error during webhook processing.');
-            return;
+          res.status(500).send('Database error during webhook processing.');
+          return;
         }
     } else if (eventType === 'TEST') {
         console.log('Received TEST event. No action taken beyond logging.');

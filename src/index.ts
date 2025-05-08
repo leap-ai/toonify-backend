@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import path from 'path';
 import auth from './auth';
-import creditsRoutes from './routes/credits';
+import subscriptionRoutes from './routes/subscription';
 import generationRoutes from './routes/generation';
 import paymentsRoutes from './routes/payments';
 import userRoutes from './routes/user';
@@ -31,7 +31,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use(express.json());
 
 // API Routes
-app.use('/api/credits', creditsRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/generation', generationRoutes);
 app.use('/api/users', userRoutes);
 
