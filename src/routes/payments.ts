@@ -6,10 +6,12 @@ import { desc, eq, sql } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
 import { config } from '../config';
+import { getSubscriptionPlan } from '../config/subscriptions';
+import { addDays } from 'date-fns';
 
 const router = Router();
 
-// Map RevenueCat product IDs to the number of credits they grant
+// Map RevenueCat product IDs to the number of credits they grant (for non-subscription credit packs)
 const PRODUCT_ID_TO_CREDITS: Record<string, number> = {
   'buy_10_credits': 10, 
   'buy_20_credits': 50,
@@ -98,76 +100,146 @@ router.post(
     }
 
     // Process specific event types
-    if (eventType === 'NON_RENEWING_PURCHASE') {
-        const productId = event.product_id;
-        const transactionId = event.transaction_id;
-        const storeTransactionId = event.store_transaction_id || event.transaction_id;
-        const paidAmount = event.price_in_purchased_currency;
-        const currency = event.currency;
+    // Let's expand this to handle subscription events as well
+    const relevantEventTypes = [
+      'INITIAL_PURCHASE', 
+      'RENEWAL', 
+      'PRODUCT_CHANGE', // User upgrades/downgrades/crossgrades
+      'NON_RENEWING_PURCHASE' // For one-time credit packs
+    ];
 
-        if (!correctAppUserId || !productId || !paidAmount || !transactionId || !storeTransactionId) {
-         console.error('Webhook event missing essential data.');
-         res.status(200).send('Event processed (missing essential data).');
+    if (relevantEventTypes.includes(eventType)) {
+        const productId = event.product_id as string;
+        const transactionId = event.transaction_id as string; // Ensure this is the correct field for idempotency
+        const storeTransactionId = event.store_transaction_id || event.transaction_id as string;
+        const paidAmount = event.price_in_purchased_currency as number; // or event.price
+        const currency = event.currency as string;
+        const eventTimestampMs = event.event_timestamp_ms as number;
+
+        if (!correctAppUserId || !productId) { // Basic check
+         console.error(`Webhook event ${eventType} missing essential data (userId or productId).`);
+         res.status(200).send('Event processed (missing essential data).'); // Ack to RC
          return;
         }
 
-        const creditsToAdd = PRODUCT_ID_TO_CREDITS[productId];
-
-        if (creditsToAdd === undefined) {
-          console.warn(`No credit amount defined for product ID: ${productId}`);
-          res.status(200).send('Event processed (unknown product ID).');
-          return;
+        // Idempotency Check using event.id or a unique transaction identifier from the event
+        // RevenueCat events have an 'id' field which is unique per event.
+        const eventId = event.id as string;
+        if (!eventId) {
+            console.error(`Webhook event ${eventType} missing event.id for idempotency key.`);
+            // Potentially fallback to transactionId if event.id is not always present,
+            // but event.id is preferred for webhook idempotency.
+            res.status(400).send('Missing event.id for idempotency.');
+            return;
         }
 
         try {
-          // Idempotency Check
-          const existingPayment = await db.select({ id: payments.id })
-            .from(payments)
-            .where(eq(payments.transactionId, transactionId))
-            .limit(1);
+            const existingPayment = await db.select({ id: payments.id })
+                .from(payments)
+                // Use event.id for idempotency key if it's unique per delivery attempt of an event.
+                // If transaction_id is more suitable for business logic idempotency (e.g. only one purchase per transaction_id)
+                // then that's fine, but webhook delivery retries should ideally use event.id.
+                // For now, assuming event.id is the unique webhook event identifier.
+                .where(eq(payments.transactionId, eventId)) // Using eventId as transactionId for this log
+                .limit(1);
 
-          if (existingPayment.length > 0) {
-            console.log(`Duplicate webhook event detected. Transaction ${transactionId} already processed.`);
-            res.status(200).send('Event processed (duplicate).');
-            return;
-          }
-          
-          // Update User Credits
-          const updatedUsers = await db
-            .update(user)
-            .set({ 
-               creditsBalance: sql`${user.creditsBalance} + ${creditsToAdd}` 
-             })
-           .where(eq(user.id, correctAppUserId))
-           .returning({ newCredits: user.creditsBalance });
+            if (existingPayment.length > 0) {
+                console.log(`Duplicate webhook event ID detected: ${eventId}. Already processed.`);
+                res.status(200).send('Event processed (duplicate event ID).');
+                return;
+            }
 
-          if (updatedUsers.length === 0) {
-           console.error(`User not found with app_user_id: ${correctAppUserId}`);
-           res.status(200).send('Event processed (user not found).');
-           return 
-          } else {
-           console.log(`Added ${creditsToAdd} credits to user. New balance: ${updatedUsers[0].newCredits}`);
+            const subscriptionPlan = getSubscriptionPlan(productId);
+            let creditsToUpdate: number | undefined = undefined;
+            let newIsProMember: boolean | undefined = undefined;
+            let newProMembershipExpiresAt: Date | undefined = undefined;
+
+            if (subscriptionPlan) {
+                // It's a subscription product
+                console.log(`Processing subscription product: ${productId}`);
+                creditsToUpdate = subscriptionPlan.creditsGranted;
+                newIsProMember = true;
+                const eventDate = new Date(eventTimestampMs);
+                newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+
+            } else if (PRODUCT_ID_TO_CREDITS[productId] !== undefined && eventType === 'NON_RENEWING_PURCHASE') {
+                // It's a known one-time credit pack
+                console.log(`Processing one-time credit pack: ${productId}`);
+                creditsToUpdate = PRODUCT_ID_TO_CREDITS[productId];
+                // isProMember and proMembershipExpiresAt remain undefined (no change)
+            } else {
+                console.warn(`Unknown product ID or unhandled event type for product: ${productId}, eventType: ${eventType}`);
+                res.status(200).send('Event processed (unknown product or unhandled event/product combo).');
+                return;
+            }
+
+            if (creditsToUpdate === undefined && newIsProMember === undefined) {
+                console.log(`No action defined for product ID: ${productId} and event type: ${eventType}`);
+                res.status(200).send('Event processed (no action defined).');
+                return;
+            }
             
-            // Log Successful Payment
-            await db.insert(payments) 
-              .values({
-                  id: crypto.randomUUID(),
-                  userId: correctAppUserId,
-                  amount: paidAmount,
-                  currency: currency,
-                  status: 'Success',
-                  transactionId: transactionId, 
-                  storeTransactionId: storeTransactionId, 
-                  productId: productId,
-                  createdAt: new Date(),
-              });
-          }
+            // Prepare user update fields
+            const userUpdateFields: Partial<{ creditsBalance: any, isProMember: boolean, proMembershipExpiresAt: Date }> = {};
+            if (creditsToUpdate !== undefined && creditsToUpdate > 0) {
+                userUpdateFields.creditsBalance = sql`${user.creditsBalance} + ${creditsToUpdate}`;
+            }
+            if (newIsProMember !== undefined) {
+                userUpdateFields.isProMember = newIsProMember;
+            }
+            if (newProMembershipExpiresAt !== undefined) {
+                userUpdateFields.proMembershipExpiresAt = newProMembershipExpiresAt;
+            }
+            
+            if (Object.keys(userUpdateFields).length === 0) {
+                console.log(`No fields to update for user ${correctAppUserId} for product ${productId}`);
+                res.status(200).send('Event processed (no user fields to update).');
+                return;
+            }
+
+            // Update User Record
+            const updatedUsers = await db
+                .update(user)
+                .set(userUpdateFields)
+                .where(eq(user.id, correctAppUserId))
+                .returning({ 
+                    id: user.id, 
+                    newCredits: user.creditsBalance, 
+                    isPro: user.isProMember, 
+                    proExpires: user.proMembershipExpiresAt 
+                });
+
+            if (updatedUsers.length === 0) {
+                console.error(`User not found with app_user_id: ${correctAppUserId} for event ${eventId}`);
+                res.status(200).send('Event processed (user not found).'); // Ack to RC
+                return;
+            } else {
+                console.log(`User ${updatedUsers[0].id} updated. Credits: ${updatedUsers[0].newCredits}, IsPro: ${updatedUsers[0].isPro}, ProExpires: ${updatedUsers[0].proExpires}`);
+            
+                // Log Successful Payment/Subscription event
+                await db.insert(payments).values({
+                    id: crypto.randomUUID(), // This should be unique for the payment record
+                    userId: correctAppUserId,
+                    amount: paidAmount || 0, // Ensure amount is a number
+                    currency: currency || 'USD',
+                    status: 'Success',
+                    transactionId: eventId, // Using eventId as the primary reference to the webhook event
+                    storeTransactionId: storeTransactionId || transactionId, // store's transaction ID
+                    productId: productId,
+                    createdAt: new Date(eventTimestampMs), // Use event timestamp
+                });
+                console.log(`Payment/Subscription logged for event ID: ${eventId}`);
+            }
 
         } catch (dbError) {
-          console.error(`Database error processing webhook:`, dbError);
-          res.status(500).send('Database error during webhook processing.');
-          return;
+            console.error(`Database error processing webhook for event ID ${eventId}:`, dbError);
+            res.status(500).send('Database error during webhook processing.');
+            return;
         }
+    } else if (eventType === 'TEST') {
+        console.log('Received TEST event. No action taken beyond logging.');
+    } else {
+        console.log(`Unhandled event type: ${eventType}. No action taken.`);
     }
     
     res.status(200).send('Webhook received successfully.');

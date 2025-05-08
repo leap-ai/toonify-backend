@@ -10,7 +10,9 @@ export const user = pgTable('user', {
   image: text('image'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  creditsBalance: integer('credits_balance').notNull().default(10),
+  creditsBalance: integer('credits_balance').notNull().default(5),
+  isProMember: boolean('is_pro_member').notNull().default(false),
+  proMembershipExpiresAt: timestamp('pro_membership_expires_at'),
 });
 
 export const session = pgTable('session', {

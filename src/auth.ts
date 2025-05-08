@@ -43,7 +43,7 @@ const auth = betterAuth({
     additionalFields: {
       creditsBalance: {
         type: "number",
-        default: 10,
+        default: 5,
       },
       image: {
         type: "string",
