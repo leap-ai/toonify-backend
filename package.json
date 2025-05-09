@@ -25,6 +25,7 @@
 		"bcrypt": "^5.1.1",
 		"better-auth": "^1.2.7",
 		"cors": "^2.8.5",
+		"date-fns": "^4.1.0",
 		"dotenv": "^16.3.1",
 		"drizzle-kit": "^0.31.0",
 		"drizzle-orm": "^0.42.0",
@@ -36,6 +37,7 @@
 		"multer": "^1.4.5-lts.2",
 		"node-fetch": "^2.6.12",
 		"pg": "^8.11.1",
+		"replicate": "^1.0.1",
 		"tsx": "^4.7.1"
 	},
 	"devDependencies": {

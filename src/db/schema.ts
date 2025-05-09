@@ -10,7 +10,11 @@ export const user = pgTable('user', {
   image: text('image'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  creditsBalance: integer('credits_balance').notNull().default(10),
+  creditsBalance: integer('credits_balance').notNull().default(5),
+  isProMember: boolean('is_pro_member').notNull().default(false),
+  proMembershipExpiresAt: timestamp('pro_membership_expires_at'),
+  subscriptionInGracePeriod: boolean('subscription_in_grace_period').default(false),
+  activeProductId: text('active_product_id'),
 });
 
 export const session = pgTable('session', {
@@ -54,6 +58,7 @@ export const generations = pgTable('generations', {
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   originalImageUrl: text('original_image_url').notNull(),
   cartoonImageUrl: text('cartoon_image_url').notNull(),
+  variant: text('variant').notNull().default('cartoon'),
   status: text('status').notNull(),
   creditsUsed: integer('credits_used').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),

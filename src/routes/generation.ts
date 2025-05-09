@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { generateCartoonImage, uploadImageToFal } from '../services/imageGeneration';
-import { db } from '../db';
-import { generations, user } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import multer from 'multer';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
+import { db } from '../db';
+import { generations, user } from '../db/schema';
+import { uploadImageToFal } from '../services/falService';
+import { generateImageWithVariant, ImageVariant } from '../services/imageGeneration';
 
 const router = Router();
 const upload = multer({
@@ -20,6 +21,9 @@ const upload = multer({
     cb(null, true);
   }
 });
+
+// Define allowed variants - sync with ImageVariant in service
+const ALLOWED_VARIANTS: ImageVariant[] = ['pixar', 'ghiblix', 'sticker', 'plushy'];
 
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
@@ -36,6 +40,16 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
       return res.status(400).json({ error: 'Image file is required' });
     }
 
+    // --- Get variant from request body ---
+    const variant = req.body.variant as ImageVariant; 
+    if (!variant || !ALLOWED_VARIANTS.includes(variant)) {
+      // Default to 'cartoon' if variant is missing or invalid
+      console.warn(`Invalid or missing variant: ${variant}. Defaulting to 'toon'.`);
+      // return res.status(400).json({ error: `Invalid or missing variant. Allowed variants: ${ALLOWED_VARIANTS.join(', ')}` });
+    }
+    const selectedVariant = ALLOWED_VARIANTS.includes(variant) ? variant : 'ghiblix';
+    // --------------------------------------
+
     // Check user credits
     const [userVal] = await db.select()
       .from(user)
@@ -51,23 +65,28 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
       return res.status(400).json({ error: 'Invalid file data' });
     }
 
-    // Convert buffer to base64
-    const base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    // Create a standard File object from the Multer file buffer
+    const inputFile = new File([file.buffer], file.originalname, { type: file.mimetype });
 
-    // Upload image to fal.ai storage
-    const falImageUrl = await uploadImageToFal(base64Image);
+    // Upload image to fal.ai storage - needs the created File object
+    const falImageUrl = await uploadImageToFal(inputFile); 
     console.log('Image uploaded to fal.ai:', falImageUrl);
 
-    // Generate cartoon image
-    const cartoonImageUrl = await generateCartoonImage(falImageUrl);
-    console.log('Cartoon image generated:', cartoonImageUrl);
+    // Convert original buffer to base64 data URL *only* if needed for HF
+    let base64Image: string | undefined = undefined;
+
+    // Generate cartoon image using the new service function with variant
+    // Pass the uploaded URL and optional base64 string
+    const generatedImageUrl = await generateImageWithVariant(falImageUrl, selectedVariant, base64Image);
+    console.log(`Image generated with variant ${selectedVariant}:`, generatedImageUrl);
 
     // Save generation to database
     const [generation] = await db.insert(generations).values({
       id: crypto.randomUUID(),
       userId: session.user.id,
       originalImageUrl: falImageUrl,
-      cartoonImageUrl: cartoonImageUrl,
+      cartoonImageUrl: generatedImageUrl,
+      variant: selectedVariant,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: 'completed',

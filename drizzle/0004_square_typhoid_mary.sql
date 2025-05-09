@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "subscription_in_grace_period" boolean DEFAULT false;

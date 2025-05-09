@@ -2,19 +2,14 @@ import express, { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { db } from '../db';
 import { payments, user } from '../db/schema';
-import { desc, eq, sql } from 'drizzle-orm';
+import { SQL, desc, eq, sql } from 'drizzle-orm';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../auth';
 import { config } from '../config';
+import { getSubscriptionPlan } from '../config/subscriptions';
+import { addDays } from 'date-fns';
 
 const router = Router();
-
-// Map RevenueCat product IDs to the number of credits they grant
-const PRODUCT_ID_TO_CREDITS: Record<string, number> = {
-  'buy_10_credits': 10, 
-  'buy_20_credits': 50,
-  'buy_100_credits': 100,
-};
 
 // IMPORTANT: Need raw body for signature verification BEFORE JSON parsing
 const rawBodySaver = (req: Request, res: Response, buf: Buffer, encoding: BufferEncoding) => {
@@ -98,76 +93,254 @@ router.post(
     }
 
     // Process specific event types
-    if (eventType === 'NON_RENEWING_PURCHASE') {
-        const productId = event.product_id;
-        const transactionId = event.transaction_id;
-        const storeTransactionId = event.store_transaction_id || event.transaction_id;
-        const paidAmount = event.price_in_purchased_currency;
-        const currency = event.currency;
+    // Let's expand this to handle subscription events as well
+    const relevantEventTypes = [
+      'INITIAL_PURCHASE', 
+      'RENEWAL', 
+      'PRODUCT_CHANGE', // User upgrades/downgrades/crossgrades
+      // 'NON_RENEWING_PURCHASE' // For one-time credit packs - No longer offering
+      'EXPIRATION', // When a subscription expires
+      'CANCELLATION', // When a subscription is cancelled (e.g., user opts out of renewal)
+      'UNCANCELLATION', // When a subscription is uncancelled (e.g., user opts back in to renewal)
+      'BILLING_ISSUE', // When a subscription has a billing issue (handled for grace period of 16 days)
+    ];
 
-        if (!correctAppUserId || !productId || !paidAmount || !transactionId || !storeTransactionId) {
-         console.error('Webhook event missing essential data.');
-         res.status(200).send('Event processed (missing essential data).');
+    if (relevantEventTypes.includes(eventType)) {
+        const productId = event.product_id as string;
+        const transactionId = event.transaction_id as string; // Ensure this is the correct field for idempotency
+        const storeTransactionId = event.store_transaction_id || event.transaction_id as string;
+        const paidAmount = event.price_in_purchased_currency as number; // or event.price
+        const currency = event.currency as string;
+        const eventTimestampMs = event.event_timestamp_ms as number;
+
+        if (!correctAppUserId || !productId) { // Basic check
+         console.error(`Webhook event ${eventType} missing essential data (userId or productId).`);
+         res.status(200).send('Event processed (missing essential data).'); // Ack to RC
          return;
         }
 
-        const creditsToAdd = PRODUCT_ID_TO_CREDITS[productId];
-
-        if (creditsToAdd === undefined) {
-          console.warn(`No credit amount defined for product ID: ${productId}`);
-          res.status(200).send('Event processed (unknown product ID).');
+        // Idempotency Check using event.id or a unique transaction identifier from the event
+        // RevenueCat events have an 'id' field which is unique per event.
+        const eventId = event.id as string;
+        if (!eventId) {
+            console.error(`Webhook event ${eventType} missing event.id for idempotency key.`);
+            // Potentially fallback to transactionId if event.id is not always present,
+            // but event.id is preferred for webhook idempotency.
+            res.status(400).send('Missing event.id for idempotency.');
           return;
         }
 
         try {
-          // Idempotency Check
           const existingPayment = await db.select({ id: payments.id })
             .from(payments)
-            .where(eq(payments.transactionId, transactionId))
+                // Use event.id for idempotency key if it's unique per delivery attempt of an event.
+                // If transaction_id is more suitable for business logic idempotency (e.g. only one purchase per transaction_id)
+                // then that's fine, but webhook delivery retries should ideally use event.id.
+                // For now, assuming event.id is the unique webhook event identifier.
+                .where(eq(payments.transactionId, eventId)) // Using eventId as transactionId for this log
             .limit(1);
 
           if (existingPayment.length > 0) {
-            console.log(`Duplicate webhook event detected. Transaction ${transactionId} already processed.`);
-            res.status(200).send('Event processed (duplicate).');
+                console.log(`Duplicate webhook event ID detected: ${eventId}. Already processed.`);
+                res.status(200).send('Event processed (duplicate event ID).');
             return;
           }
           
-          // Update User Credits
-          const updatedUsers = await db
-            .update(user)
-            .set({ 
-               creditsBalance: sql`${user.creditsBalance} + ${creditsToAdd}` 
-             })
-           .where(eq(user.id, correctAppUserId))
-           .returning({ newCredits: user.creditsBalance });
+            // Handle BILLING_ISSUE separately as it has a specific update and logging path
+            if (eventType === 'BILLING_ISSUE') {
+                console.warn(`Billing issue for user ${correctAppUserId}, product ${productId}. Payment may be retrying.`);
 
-          if (updatedUsers.length === 0) {
-           console.error(`User not found with app_user_id: ${correctAppUserId}`);
-           res.status(200).send('Event processed (user not found).');
-           return 
-          } else {
-           console.log(`Added ${creditsToAdd} credits to user. New balance: ${updatedUsers[0].newCredits}`);
-            
-            // Log Successful Payment
-            await db.insert(payments) 
-              .values({
+                // Update user to set subscriptionInGracePeriod = true
+                await db.update(user)
+            .set({ 
+                      subscriptionInGracePeriod: true,
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(user.id, correctAppUserId));
+                console.log(`User ${correctAppUserId} marked with subscriptionInGracePeriod = true.`);
+
+                // Log the billing issue event in payments table
+                await db.insert(payments).values({
                   id: crypto.randomUUID(),
                   userId: correctAppUserId,
-                  amount: paidAmount,
-                  currency: currency,
-                  status: 'Success',
-                  transactionId: transactionId, 
-                  storeTransactionId: storeTransactionId, 
+                  amount: 0, // No amount collected for a billing issue
+                  currency: currency || 'USD',
+                  status: 'BillingIssue',
+                  transactionId: eventId, // Use the RevenueCat event ID for tracing
+                  storeTransactionId: storeTransactionId || transactionId, 
                   productId: productId,
-                  createdAt: new Date(),
-              });
+                  createdAt: new Date(eventTimestampMs),
+                });
+                console.log(`BillingIssue event logged for user ${correctAppUserId}, event ID: ${eventId}`);
+
+                res.status(200).send('Event processed (billing issue logged).');
+                return;
+            }
+
+            const subscriptionPlan = getSubscriptionPlan(productId);
+            let creditsToUpdate: number | undefined = undefined;
+            let newIsProMember: boolean | undefined = undefined;
+            let newProMembershipExpiresAt: Date | null | undefined = undefined;
+            let newSubscriptionInGracePeriod: boolean | undefined = undefined;
+            let newActiveProductId: string | null | undefined = undefined;
+
+            if (eventType === 'EXPIRATION') {
+                // Handle subscription expiration
+                console.log(`Processing subscription expiration for user: ${correctAppUserId}`);
+                newIsProMember = false;
+                newProMembershipExpiresAt = null;
+                newSubscriptionInGracePeriod = false;
+                newActiveProductId = null;
+            } else if (eventType === 'UNCANCELLATION') {
+                // Handle subscription un-cancellation
+                console.log(`Processing un-cancellation for user: ${correctAppUserId}, product: ${productId}`);
+                newIsProMember = true; // User is opting back into an active subscription
+                newSubscriptionInGracePeriod = false;
+                newActiveProductId = productId;
+                // proMembershipExpiresAt typically remains from before cancellation for the current period.
+                // If RevenueCat provides a new expiration in the event, we might need to parse it.
+                // For now, assuming existing expiration holds until next renewal cycle or if event provides new one.
+                const existingUser = await db.query.user.findFirst({ where: eq(user.id, correctAppUserId), columns: { proMembershipExpiresAt: true } });
+                if (existingUser?.proMembershipExpiresAt) {
+                    newProMembershipExpiresAt = existingUser.proMembershipExpiresAt;
+                }
+
+            } else if (subscriptionPlan) { // This covers INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE if a plan is found
+                if (eventType === 'PRODUCT_CHANGE') {
+                    console.log(`Processing PRODUCT_CHANGE for product: ${productId} (user: ${correctAppUserId})`);
+                    newIsProMember = true;
+                    const eventDate = new Date(eventTimestampMs);
+                    // The new expiration date will typically be part of the event for the new plan that follows.
+                    // For the PRODUCT_CHANGE event itself, if it refers to the old plan, 
+                    // we might just be acknowledging the change. Let's set expiration based on current event for now.
+                    newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+                    newSubscriptionInGracePeriod = false;
+                    newActiveProductId = productId;
+                    // CRUCIAL: Do not set creditsToUpdate here if this PRODUCT_CHANGE refers to the old plan.
+                    // Credits are granted by the INITIAL_PURCHASE or RENEWAL event for the new (upgraded) plan.
+                } else if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL') {
+                    console.log(`Processing ${eventType} for product: ${productId} (user: ${correctAppUserId})`);
+                    creditsToUpdate = subscriptionPlan.creditsGranted;
+                    newIsProMember = true;
+                    const eventDate = new Date(eventTimestampMs);
+                    newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+                    newSubscriptionInGracePeriod = false;
+                    newActiveProductId = productId;
+                } else {
+                    // Fallback for any other relevant type that has a plan but isn't explicitly handled above
+                    console.warn(`Generic subscription processing for eventType: ${eventType}, product: ${productId} (user: ${correctAppUserId})`);
+                    creditsToUpdate = subscriptionPlan.creditsGranted;
+                    newIsProMember = true;
+                    const eventDate = new Date(eventTimestampMs);
+                    newProMembershipExpiresAt = addDays(eventDate, subscriptionPlan.durationDays);
+                    newSubscriptionInGracePeriod = false;
+                    newActiveProductId = productId;
+                }
+            } else {
+                // No subscriptionPlan found for the productId for INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE etc.
+                // EXPIRATION and UNCANCELLATION are handled above and don't strictly need a plan here.
+                if (eventType !== 'EXPIRATION' && eventType !== 'UNCANCELLATION') {
+                    console.warn(`No subscription plan found for product ID: ${productId} (event type: ${eventType}, user: ${correctAppUserId}). Cannot process standard subscription updates.`);
+                    // This will likely fall through to the "No action defined" check below.
+                }
+            }
+
+            // For CANCELLATION events with UNSUBSCRIBE reason, we don't update user record here.
+            // Benefits continue until the EXPIRATION event for the current period.
+            if (eventType === 'CANCELLATION' && event.cancel_reason === 'UNSUBSCRIBE') {
+                console.log(`User ${correctAppUserId} cancelled auto-renewal for product ${productId}. Benefits continue until expiration.`);
+                // No change to user.isProMember or user.proMembershipExpiresAt here.
+                // The EXPIRATION event will handle the termination of benefits.
+                // We still log the payment record for this CANCELLATION event for audit purposes if needed.
+                // However, typically cancellation events might not need a separate payment record unless it's a refund.
+                // For now, let's assume we only log to console and don't create/update user or payment record for UNSUBSCRIBE.
+                res.status(200).send('Event processed (Cancellation/Unsubscribe noted).');
+                return; // Skip user/payment update for this specific scenario
+            }
+
+            // Adjusted "No action defined" check to account for events that modify pro status without credits
+            if (creditsToUpdate === undefined && newIsProMember === undefined && !(eventType === 'EXPIRATION')) {
+                console.log(`No definitive action (credits or pro status change) for product ID: ${productId}, event type: ${eventType}, user: ${correctAppUserId}. This could be an unknown product or an event like CANCELLATION that is handled by returning earlier.`);
+                res.status(200).send('Event processed (no definitive user update action taken).');
+                return;
+            }
+            
+            // Prepare user update fields
+            // Explicitly type updateData to allow SQL for creditsBalance and include subscriptionInGracePeriod
+            const updateData: Partial<Omit<typeof user.$inferInsert, 'creditsBalance' | 'subscriptionInGracePeriod' | 'activeProductId'>> & { 
+                creditsBalance?: number | SQL; 
+                subscriptionInGracePeriod?: boolean;
+                activeProductId?: string | null;
+            } = {};
+
+            if (creditsToUpdate !== undefined) {
+              updateData.creditsBalance = sql`${user.creditsBalance} + ${creditsToUpdate}`;
+            }
+            if (newIsProMember !== undefined) {
+              updateData.isProMember = newIsProMember;
+            }
+            if (newProMembershipExpiresAt !== undefined) {
+              updateData.proMembershipExpiresAt = newProMembershipExpiresAt;
+            }
+            if (newSubscriptionInGracePeriod !== undefined) {
+                updateData.subscriptionInGracePeriod = newSubscriptionInGracePeriod;
+            }
+            if (newActiveProductId !== undefined) {
+                updateData.activeProductId = newActiveProductId;
+            }
+            updateData.updatedAt = new Date();
+
+            if (Object.keys(updateData).length > 1) { // more than just updatedAt
+                // Update User Record
+                const updatedUsers = await db
+                    .update(user)
+                    .set(updateData)
+                    .where(eq(user.id, correctAppUserId))
+                    .returning({ 
+                        id: user.id, 
+                        newCredits: user.creditsBalance,
+                        isPro: user.isProMember, 
+                        proExpires: user.proMembershipExpiresAt 
+                    });
+
+                if (updatedUsers.length === 0) {
+                    console.error(`User not found with app_user_id: ${correctAppUserId} for event ${eventId}`);
+                    res.status(200).send('Event processed (user not found).'); // Ack to RC
+                    return;
+                } else {
+                  console.log(`User ${updatedUsers[0].id} updated. Credits: ${updatedUsers[0].newCredits}, IsPro: ${updatedUsers[0].isPro}, ProExpires: ${updatedUsers[0].proExpires}`);
+              
+                  // Log "Success" only for actual new purchases or renewals that result in a user update.
+                  // PRODUCT_CHANGE itself does not log a new payment here; the subsequent event for the new plan does.
+                  // BILLING_ISSUE logs its own type. EXPIRATION, UNCANCELLATION, CANCELLATION don't log new "Success" payments.
+                  if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL') {
+                    await db.insert(payments).values({
+                        id: crypto.randomUUID(), // This should be unique for the payment record
+                        userId: correctAppUserId,
+                        amount: paidAmount || 0, // Ensure amount is a number
+                        currency: currency || 'USD',
+                        status: 'Success',
+                        transactionId: eventId, // Using eventId as the primary reference to the webhook event
+                        storeTransactionId: storeTransactionId || transactionId, // store's transaction ID
+                        productId: productId,
+                        createdAt: new Date(eventTimestampMs), // Use event timestamp
+                    });
+                    console.log(`Payment/Subscription 'Success' logged for ${eventType}, event ID: ${eventId}`);
+                  } else {
+                    console.log(`No new 'Success' payment record logged for this event type (${eventType}), event ID: ${eventId}.`);
+                  }
+                }
           }
 
         } catch (dbError) {
-          console.error(`Database error processing webhook:`, dbError);
+            console.error(`Database error processing webhook for event ID ${eventId}:`, dbError);
           res.status(500).send('Database error during webhook processing.');
           return;
         }
+    } else if (eventType === 'TEST') {
+        console.log('Received TEST event. No action taken beyond logging.');
+    } else {
+        console.log(`Unhandled event type: ${eventType}. No action taken.`);
     }
     
     res.status(200).send('Webhook received successfully.');
