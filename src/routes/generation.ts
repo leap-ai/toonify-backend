@@ -6,7 +6,7 @@ import auth from '../auth';
 import { db } from '../db';
 import { generations, user } from '../db/schema';
 import { uploadImageToFal } from '../services/falService';
-import { OpenAIImageGenService, ImageVariant } from '../services/openAIImageGen';
+import { OpenAIImageGenService, ImageVariant } from '../services/imageGeneration';
 import { config } from '../config';
 
 const router = Router();
@@ -37,7 +37,6 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     
     // Read isPro header and convert to boolean
     const isPro = req.headers.ispro === 'true';
-    console.log('isPro:', isPro);
 
     if (!session?.user?.id) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -81,6 +80,7 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     const cartoonImageUrl = await openAIService.generateCartoonImage({
       image: inputFile,
       variant: selectedVariant,
+      isPro,
     });
     console.log(`Image generated with variant ${selectedVariant}:`, cartoonImageUrl);
 
