@@ -40,7 +40,6 @@ export class OpenAIImageGenService {
         n: 1,
         quality: "low",
         size: "auto",
-        response_format: 'b64_json',
       });
 
       if (!response?.data?.[0]?.b64_json) {
