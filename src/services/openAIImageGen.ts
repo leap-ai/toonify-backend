@@ -10,7 +10,7 @@ const Prompts: Record<ImageVariant, string> = {
   sticker: "High-contrast cartoon sticker portrait of person(s) with no background, thick white outline, clean vector shading, smooth skin, sharp highlights, glossy comic style, realistic facial features in caricature format.",
   plushy: "Cute plush toy version of this character, ultra soft textures, stitched seams, small round eyes, fluffy and cuddly appearance, photographed on white studio background",
   kawaii: "Kawaii character in Sanrio style, pastel colors, minimal face, big head and small body, soft outline, super cute and simple design.",
-  anime: "Highly detailed anime-style portrait of a person, soft cel-shading, large expressive eyes, smooth skin, clean line art, delicate highlights, subtle blush, Japanese animation aesthetic, light background, 2D flat color rendering with fine anime detailing, resembling classic anime character design.",
+  anime: "Highly detailed anime-style picture, soft cel-shading, large expressive eyes, smooth skin, clean line art, delicate highlights, subtle blush, Japanese animation aesthetic, light background, 2D flat color rendering with fine anime detailing, resembling classic anime character design.",
 };
 
 interface ImageGenerationOptions {

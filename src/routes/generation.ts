@@ -34,7 +34,7 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
-
+    console.log('isPro', req.headers.isPro);
     if (!session?.user?.id) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
