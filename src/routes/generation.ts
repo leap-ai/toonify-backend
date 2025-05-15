@@ -6,12 +6,13 @@ import auth from '../auth';
 import { db } from '../db';
 import { generations, user } from '../db/schema';
 import { uploadImageToFal } from '../services/falService';
-import { generateImageWithVariant, ImageVariant } from '../services/imageGeneration';
+import { OpenAIImageGenService, ImageVariant } from '../services/imageGeneration';
+import { config } from '../config';
 
 const router = Router();
 const upload = multer({
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 25 * 1024 * 1024, // 50MB limit
   },
   fileFilter: (req, file, cb) => {
     // Accept only image files
@@ -23,13 +24,19 @@ const upload = multer({
 });
 
 // Define allowed variants - sync with ImageVariant in service
-const ALLOWED_VARIANTS: ImageVariant[] = ['pixar', 'ghiblix', 'sticker', 'plushy'];
+const ALLOWED_VARIANTS: ImageVariant[] = ['pixar', 'ghiblix', 'sticker', 'plushy', 'kawaii', 'anime'];
+
+// Initialize OpenAI service
+const openAIService = new OpenAIImageGenService(config.openai.apiKey);
 
 router.post('/generate', upload.single('image'), async (req, res): Promise<any> => {
   try {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
+    
+    // Read isPro header and convert to boolean
+    const isPro = req.headers.ispro === 'true';
 
     if (!session?.user?.id) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -43,9 +50,7 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     // --- Get variant from request body ---
     const variant = req.body.variant as ImageVariant; 
     if (!variant || !ALLOWED_VARIANTS.includes(variant)) {
-      // Default to 'cartoon' if variant is missing or invalid
-      console.warn(`Invalid or missing variant: ${variant}. Defaulting to 'toon'.`);
-      // return res.status(400).json({ error: `Invalid or missing variant. Allowed variants: ${ALLOWED_VARIANTS.join(', ')}` });
+      console.warn(`Invalid or missing variant: ${variant}. Defaulting to 'ghiblix'.`);
     }
     const selectedVariant = ALLOWED_VARIANTS.includes(variant) ? variant : 'ghiblix';
     // --------------------------------------
@@ -69,23 +74,22 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     const inputFile = new File([file.buffer], file.originalname, { type: file.mimetype });
 
     // Upload image to fal.ai storage - needs the created File object
-    const falImageUrl = await uploadImageToFal(inputFile); 
-    console.log('Image uploaded to fal.ai:', falImageUrl);
-
-    // Convert original buffer to base64 data URL *only* if needed for HF
-    let base64Image: string | undefined = undefined;
-
-    // Generate cartoon image using the new service function with variant
-    // Pass the uploaded URL and optional base64 string
-    const generatedImageUrl = await generateImageWithVariant(falImageUrl, selectedVariant, base64Image);
-    console.log(`Image generated with variant ${selectedVariant}:`, generatedImageUrl);
+    const originalImageUrl = await uploadImageToFal(inputFile);
+    
+    // Generate cartoon image using OpenAI service
+    const cartoonImageUrl = await openAIService.generateCartoonImage({
+      image: inputFile,
+      variant: selectedVariant,
+      isPro,
+    });
+    console.log(`Image generated with variant ${selectedVariant}:`, cartoonImageUrl);
 
     // Save generation to database
     const [generation] = await db.insert(generations).values({
       id: crypto.randomUUID(),
       userId: session.user.id,
-      originalImageUrl: falImageUrl,
-      cartoonImageUrl: generatedImageUrl,
+      originalImageUrl,
+      cartoonImageUrl,
       variant: selectedVariant,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -103,7 +107,7 @@ router.post('/generate', upload.single('image'), async (req, res): Promise<any> 
     console.error('Error in generation:', error);
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File size too large. Maximum size is 5MB' });
+        return res.status(400).json({ error: 'File size too large. Maximum size is 25MB' });
       }
       return res.status(400).json({ error: error.message });
     }

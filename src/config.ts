@@ -19,6 +19,7 @@ const requiredEnvVars = [
 	"BETTER_AUTH_SECRET",
 	"REVENUECAT_SECRET",
 	"REPLICATE_API_TOKEN",
+	"OPENAI_API_KEY"
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -56,6 +57,9 @@ export const config = {
 	},
 	replicate: {
 		token: process.env.REPLICATE_API_TOKEN as string,
+	},
+	openai: {
+		apiKey: process.env.OPENAI_API_KEY as string,
 	},
 	// Method to generate Apple client secret on the fly
 	getAppleClientSecret: () => {
