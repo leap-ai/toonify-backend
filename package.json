@@ -36,6 +36,7 @@
 		"jwt-decode": "^2.2.0",
 		"multer": "^1.4.5-lts.2",
 		"node-fetch": "^2.6.12",
+		"openai": "^4.98.0",
 		"pg": "^8.11.1",
 		"replicate": "^1.0.1",
 		"tsx": "^4.7.1"
